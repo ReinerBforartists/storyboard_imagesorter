@@ -89,7 +89,8 @@ For developers and technical users:
 
 ### Windows
 The application is provided as a standalone executable.
-1. Download the `storyboard_imagesorter.exe` from the [Releases](#) page.
+1. Download the `storyboard_imagesorter.zip` from the [Releases](#) page.
+2. Extract the Zipfile
 2. Run the `.exe` directly.
 
 ### macOS & Linux (Source Distribution)

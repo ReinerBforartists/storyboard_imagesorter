@@ -14,7 +14,7 @@ Storyboard Imagesorter is a lightweight, intuitive tool designed for artists, an
 | :---: | :---: |
 | ![Main Interface](img/empty.jpg) | ![Lightbox](img/lightbox.jpg) |
 
-| Contact Sheet (Grid) | Storyboard List (Layout) |
+| Main view | Exported images |
 | :---: | :---: |
 | ![Sorting](img/sorting.jpg) | ![Exported](img/export.jpg) |
 

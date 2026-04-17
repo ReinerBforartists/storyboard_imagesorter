@@ -259,7 +259,7 @@ class ToolbarMixin:
         menu = QMenu(self)
         menu.setStyleSheet(constants.MENU_STYLE)
 
-        # Gap control
+        # Gap control (bleibt gleich)
         gap_wa = QWidgetAction(menu)
         gap_container = QWidget()
         gap_container.setStyleSheet("background:#252525; border:1px solid #383838; border-radius:6px;")
@@ -297,7 +297,7 @@ class ToolbarMixin:
         gap_wa.setDefaultWidget(gap_container)
         menu.addAction(gap_wa)
 
-        # Auto-reload toggle
+        # Styles für die Toggle-Buttons
         _ss_active = (
             "QPushButton{background:#172d4e;color:#4d8fcc;"
             "border:1px solid #2d6fab;border-radius:4px;padding:4px 10px;font-size:11px;}"
@@ -307,6 +307,7 @@ class ToolbarMixin:
             "border:1px solid #383838;border-radius:4px;padding:4px 10px;font-size:11px;}"
         )
 
+        # Auto-reload toggle (optimiert)
         ar_wa = QWidgetAction(menu)
         ar_container = QWidget()
         ar_container.setStyleSheet("background: transparent;")
@@ -316,26 +317,27 @@ class ToolbarMixin:
 
         ar_cb = QPushButton()
         ar_cb.setCheckable(True)
-        ar_cb.setChecked(self.settings_manager.get("auto_reload", True))
-
-        def _update_ar_btn():
-            status = "✓" if ar_cb.isChecked() else ""
-            ar_cb.setText(f"↻  Auto-reload changed images {status}")
-            ar_cb.setStyleSheet(_ss_active if ar_cb.isChecked() else _ss_inactive)
+        initial_ar = self.settings_manager.get("auto_reload", True)
+        ar_cb.setChecked(initial_ar)
+        # Initiales Aussehen setzen OHNE Signal-Trigger
+        status_icon = "✓" if initial_ar else ""
+        ar_cb.setText(f"↻  Auto-reload changed images {status_icon}")
+        ar_cb.setStyleSheet(_ss_active if initial_ar else _ss_inactive)
 
         def _toggle_ar(checked):
             self.settings_manager.set("auto_reload", checked)
             self._save_settings()
-            _update_ar_btn()
+            status = "✓" if checked else ""
+            ar_cb.setText(f"↻  Auto-reload changed images {status}")
+            ar_cb.setStyleSheet(_ss_active if checked else _ss_inactive)
 
         ar_cb.toggled.connect(_toggle_ar)
-        _update_ar_btn()
         ar_row.addWidget(ar_cb)
         ar_wa.setDefaultWidget(ar_container)
         menu.addAction(ar_wa)
         menu.addSeparator()
 
-        # Label visibility toggles
+        # Label visibility toggles (DER FIX FÜR DEN LAG)
         label_wa = QWidgetAction(menu)
         label_container = QWidget()
         label_layout = QVBoxLayout(label_container)
@@ -346,16 +348,22 @@ class ToolbarMixin:
             btn = QPushButton()
             btn.setCheckable(True)
             current_val = self.settings_manager.get(setting_key, True)
+
+            # 1. Optik manuell setzen (kein Signal-Trigger!)
+            btn.setText(f"☑ {text}" if current_val else f"☐ {text}")
+            btn.setStyleSheet(_ss_active if current_val else _ss_inactive)
+
+            # 2. Internen Status setzen (da noch kein .connect erfolgt, wird kein Signal ausgelöst!)
             btn.setChecked(current_val)
 
             def _on_toggle_changed(checked: bool):
                 self.settings_manager.set(setting_key, checked)
                 self._save_settings()
-                self._apply_label_settings()
+                self._apply_label_settings() # Die teure Funktion wird NUR beim Klick aufgerufen
                 btn.setText(f"☑ {text}" if checked else f"☐ {text}")
                 btn.setStyleSheet(_ss_active if checked else _ss_inactive)
 
-            _on_toggle_changed(current_val)
+            # 3. Erst JETZT die Verbindung herstellen für zukünftige Klicks
             btn.toggled.connect(_on_toggle_changed)
             return btn
 
@@ -373,7 +381,9 @@ class ToolbarMixin:
         menu.addAction("  Reset all settings to defaults", self._reset_settings)
 
         btn = self.sender()
-        menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
+        if btn:
+            menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
+
 
     def _reset_settings(self):
         """Resets all settings to defaults after confirmation."""

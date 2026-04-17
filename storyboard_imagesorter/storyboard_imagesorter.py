@@ -132,14 +132,29 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             del self.custom_notes[path]
 
     def _apply_label_settings(self):
+        """
+        Apply label visibility settings only to currently visible cards.
+        This prevents heavy UI rebuilds and eliminates lag when toggling settings.
+        """
         show_idx = self.settings_manager.get("show_index", True)
         show_name = self.settings_manager.get("show_filename", True)
         show_notes = self.settings_manager.get("show_notes", True)
-        for card in self.cards:
-            card.set_label_visibility(show_idx, show_name, show_notes)
-            if show_notes:
-                card.set_note_text(self.custom_notes.get(card.path, ""))
-        self._rebuild_flow_completely()
+
+        # Calculate the current viewport boundaries
+        scroll_y = self.scroll.verticalScrollBar().value()
+        view_height = self.scroll.viewport().height()
+
+        # Use a small margin to prevent flickering at the edges
+        margin = int(view_height * 0.1)
+        vis_top = scroll_y - margin
+        vis_bot = scroll_y + view_height + margin
+
+        # Iterate through cached positions for high-performance updates
+        for card, y, h in self._y_cache:
+            if (y + h) >= vis_top and y <= vis_bot:
+                card.set_label_visibility(show_idx, show_name, show_notes)
+                if show_notes:
+                    card.set_note_text(self.custom_notes.get(card.path, ""))
 
     # ── Shortcuts ─────────────────────────────────────────────────────────────
 
@@ -198,14 +213,25 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
     def _zoom_changed(self, _):
         """Handles zoom changes with a lightweight refresh instead of full rebuild."""
-        self.icon_size = utils_workers.zoom_to_px(self.zoom_box.currentData())
+        # 1. Update the icon size based on current selection
+        new_zoom = self.zoom_box.currentData()
+        self.icon_size = utils_workers.zoom_to_px(new_zoom)
+
+        # 2. Tell all cards to resize themselves according to the new zoom level
         for card in self.cards:
             card.update_size(self.icon_size)
 
-        # Instead of rebuilding widgets, we just tell the layout to refresh
-        # and then update our position cache once the geometry is applied.
-        QTimer.singleShot(0, self._rebuild_y_cache)
+        # 3. Schedule a refresh after the layout engine has finished resizing widgets.
+        # We use singleShot(0) so this runs immediately after the current event loop finishes.
+        QTimer.singleShot(0, self._refresh_after_zoom)
         self._save_settings()
+
+    def _refresh_after_zoom(self):
+        """Rebuilds position cache and refreshes visible cards immediately after zoom."""
+        self._rebuild_y_cache()
+        # This ensures that all newly visible cards get their labels/images instantly.
+        self._update_visible_cards()
+
 
     def _rebuild_y_cache(self):
         """Updates the Y-cache with current widget geometries."""
@@ -440,21 +466,38 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self._lazy_timer.start(80)
 
     def _update_visible_cards(self):
+        """
+        Update thumbnails and labels for cards as they enter/leave the viewport.
+        This handles the lazy loading of both images and label states during scroll.
+        """
         scroll_y = self.scroll.verticalScrollBar().value()
-        vph = self.scroll.viewport().height()
-        # Dynamic margin based on viewport height to support high-res monitors
-        lazy_margin = int(vph * 0.4)
-        vis_top = scroll_y - lazy_margin
-        vis_bot = scroll_y + vph + lazy_margin
+        view_height = self.scroll.viewport().height()
 
-        # Use the cached Y-positions for high-performance iteration
+        # Larger margin ensures smooth appearance while scrolling fast
+        margin = int(view_height * 0.4)
+        vis_top = scroll_y - margin
+        vis_bot = scroll_y + view_height + margin
+
+        # Fetch settings once to avoid redundant calls inside the loop
+        show_idx = self.settings_manager.get("show_index", True)
+        show_name = self.settings_manager.get("show_filename", True)
+        show_notes = self.settings_manager.get("show_notes", True)
+
         for card, y, h in self._y_cache:
             in_range = (y + h) >= vis_top and y <= vis_bot
             has_px = card.img_label.pixmap() and not card.img_label.pixmap().isNull()
 
-            if in_range and not has_px:
-                card.load_thumbnail()
-            elif not in_range and has_px:
+            if in_range:
+                # 1. Handle Thumbnail loading
+                if not has_px:
+                    card.load_thumbnail()
+
+                # 2. Handle Label state (Lazy Load labels)
+                card.set_label_visibility(show_idx, show_name, show_notes)
+                if show_notes:
+                    card.set_note_text(self.custom_notes.get(card.path, ""))
+            elif has_px:
+                # Unload thumbnail when it leaves the viewport to save memory
                 card.unload_thumbnail()
 
     # ── Selection ─────────────────────────────────────────────────────────────

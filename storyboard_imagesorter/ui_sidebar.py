@@ -49,16 +49,24 @@ class ColorSidebar(QWidget):
         layout.setSpacing(8)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # Professional color palette (10 preset colors)
+        # High-contrast palette (10 colors) optimized for Dark Theme
         self.palette = [
-            "#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6",
-            "#1abc9c", "#e67e22", "#95a5a6", "#ffffff", "#000000"
+        "#ff0000",  # Red
+        "#00ff33",  # Green
+        "#2979FF",  # Blue
+        "#FFFF00",  # Yellow
+        "#f032e6",  # Magenta
+        "#FF9100",  # Orange
+        "#00ffff",  # Cyan
+        "#996600",  # Brown
+        "#999999",  # Grey
+        "#FFFFFF",  # White
         ]
 
-        # Color names for tooltips
         self.palette_names = [
-            "Red", "Blue", "Green", "Yellow", "Purple",
-            "Teal", "Orange", "Gray", "White", "Black"
+            "Red", "Green", "Blue",
+            "Yellow", "PMagentaurple", "Orange",
+            "Cyan", "Brown", "Grey", "White"
         ]
 
         # Create palette buttons

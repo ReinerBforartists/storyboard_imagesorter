@@ -57,6 +57,7 @@ class ThumbnailCard(QFrame):
         self.drag_start_pos = None
         self._worker = None
         self._source_image = None  # High-quality cache for sharp zooming
+        self._current_style = None  # Cache to avoid redundant setStyleSheet calls
         self.setAcceptDrops(True)
 
         self._idx_font_size = 10
@@ -311,7 +312,10 @@ class ThumbnailCard(QFrame):
         self._changed = changed
         self.reload_btn.setVisible(changed)
         if changed:
-            self.setStyleSheet("background:#252525;border:2px solid #e8872a;border-radius:5px;")
+            s = "background:#252525;border:2px solid #e8872a;border-radius:5px;"
+            if s != self._current_style:
+                self._current_style = s
+                self.setStyleSheet(s)
         else:
             self._apply_style()
 
@@ -322,11 +326,14 @@ class ThumbnailCard(QFrame):
 
     def _apply_style(self):
         if self._drag_over:
-            self.setStyleSheet("background:#1e3d6e;border:2px solid #4d8fcc;border-radius:5px;")
+            s = "background:#1e3d6e;border:2px solid #4d8fcc;border-radius:5px;"
         elif self._selected:
-            self.setStyleSheet("background:#172d4e;border:2px solid #2d6fab;border-radius:5px;")
+            s = "background:#172d4e;border:2px solid #2d6fab;border-radius:5px;"
         else:
-            self.setStyleSheet("background:#252525;border:2px solid #404040;border-radius:5px;")
+            s = "background:#252525;border:2px solid #404040;border-radius:5px;"
+        if s != self._current_style:
+            self._current_style = s
+            self.setStyleSheet(s)
 
     def set_selected(self, sel):
         self._selected = sel

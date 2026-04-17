@@ -408,7 +408,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self.cards = [pm[p] for p in path_list if p in pm]
         for i, c in enumerate(self.cards):
             c.update_index(i)
-        self._rebuild_flow_completely()
+        self._reorder_flow_widgets()
         self._update_count()
 
     def _move_cards_by_paths(self, src_paths, dst_index, direction=1):
@@ -448,7 +448,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self.undo_stack.push(commands.MoveCardsCommand(self, old, new_paths))
 
     def _rebuild_flow_completely(self):
-        """Full reconstruction of the layout and cache (used for heavy operations)."""
+        """Full reconstruction of the layout and cache (used for heavy operations like adding/removing cards)."""
         while self.flow_layout.count():
             item = self.flow_layout.takeAt(0)
             if item and item.widget():
@@ -461,6 +461,35 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         # Update cache after full rebuild
         self._rebuild_y_cache()
 
+        self._update_empty_state()
+        self._update_window_title()
+        self._lazy_timer.start(80)
+
+    def _reorder_flow_widgets(self):
+        """
+        Smart reorder: repositions existing widgets in the layout without
+        destroying and recreating them. Use this for sort/move operations
+        where no cards are added or removed — only their order changes.
+        This avoids the Qt widget churn that causes lag at >500 cards.
+
+        We bypass addWidget/takeAt entirely and write FlowLayout.items directly.
+        This is safe because FlowLayout is our own class and addWidget on an
+        already-parented widget is unreliable in Qt6 (may not trigger addItem).
+        """
+        # Build a lookup from widget to its current QWidgetItem in the layout
+        item_map = {item.widget(): item for item in self.flow_layout.items if item.widget()}
+
+        # Replace the items list in-place with the new order — no parent changes, no allocation
+        self.flow_layout.items = [item_map[card] for card in self.cards if card in item_map]
+
+        # Update indices and force a layout pass
+        for idx, card in enumerate(self.cards):
+            card.update_index(idx)
+
+        self.flow_layout.invalidate()
+        self.flow_layout.update()
+
+        self._rebuild_y_cache()
         self._update_empty_state()
         self._update_window_title()
         self._lazy_timer.start(80)

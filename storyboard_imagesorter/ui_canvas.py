@@ -183,6 +183,7 @@ class LassoContainer(QWidget):
         self.overlay = IndicatorOverlay(self)
         self.overlay.raise_()
         self._is_internal_drag = False
+        self._last_drag_target = (None, None)  # (card, indicator) — skip repaint if unchanged
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
@@ -190,6 +191,7 @@ class LassoContainer(QWidget):
 
     def _clear_drop_state(self):
         """Resets all card indicators and styles."""
+        self._last_drag_target = (None, None)
         for c in self.sorter.cards:
             c._drag_over = False
             c._drop_indicator = None
@@ -247,7 +249,19 @@ class LassoContainer(QWidget):
             pos = e.position().toPoint()
             tgt, indicator = self._find_target(pos)
 
-            self._clear_drop_state()
+            # Skip repaint if nothing changed
+            if (tgt, indicator) == self._last_drag_target:
+                e.acceptProposedAction()
+                return
+
+            # Reset only the single previously highlighted card — no full iteration
+            prev_tgt, _ = self._last_drag_target
+            if prev_tgt is not None:
+                prev_tgt._drag_over = False
+                prev_tgt._drop_indicator = None
+                prev_tgt._apply_style()
+
+            self._last_drag_target = (tgt, indicator)
 
             if tgt:
                 tgt._drag_over = True

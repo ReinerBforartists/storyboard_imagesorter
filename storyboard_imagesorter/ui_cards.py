@@ -76,8 +76,8 @@ class ThumbnailCard(QFrame):
         self.main_layout.setContentsMargins(6, 4, 6, 2)
         self.main_layout.setSpacing(1)
 
+        # --- Image Section ---
         self.stack = QStackedWidget()
-        # Use Fixed vertical policy to prevent the stack from expanding uncontrollably
         self.stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
 
         self.img_container = QWidget()
@@ -116,16 +116,23 @@ class ThumbnailCard(QFrame):
         self.stack.addWidget(self.note_editor)
         self.main_layout.addWidget(self.stack)
 
+        # --- Color Accent Bar (Always visible, part of layout) ---
+        self.color_bar = QFrame()
+        self.color_bar.setFixedHeight(6)
+        # Default theme color: neutral dark grey
+        self.color_bar.setStyleSheet("background-color: #404040; border: none;")
+        self.main_layout.addWidget(self.color_bar)
+
+        # --- Text Labels Section (Solid Dark Grey) ---
         self.idx_label = QLabel(str(self.index + 1))
         self.idx_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.idx_label.setStyleSheet("color:#bbb; font-size:10px;")
         self.main_layout.addWidget(self.idx_label)
 
         self.name_label = QLabel(os.path.basename(self.path))
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.name_label.setStyleSheet("color:#eee; font-size:9px;")
         self.main_layout.addWidget(self.name_label)
 
+        # --- Actions Section ---
         self.toggle_btn = QPushButton("📝 + Add Note")
         self.toggle_btn.setFixedHeight(34)
         self.toggle_btn.setStyleSheet(
@@ -180,19 +187,16 @@ class ThumbnailCard(QFrame):
         if self._is_note_mode:
             self._is_note_mode = False
             self.stack.setCurrentIndex(0)
-            # In image mode, stack height must match image size
             self.stack.setFixedHeight(self._size)
             current_text = self.note_editor.toPlainText().strip()
             self._update_button_preview(current_text)
         else:
             self._is_note_mode = True
             self.stack.setCurrentIndex(1)
-            # In note mode, stack needs more height to show the editor
             self.stack.setFixedHeight(max(self._size, 120))
             self.toggle_btn.setText("🖼 Show Image")
 
         self._apply_style()
-        # Refresh total card size after mode switch
         self.set_label_visibility(
             self._settings_index_visible,
             self._settings_name_visible,
@@ -217,12 +221,15 @@ class ThumbnailCard(QFrame):
         self.toggle_btn.setVisible(show_notes)
 
         scale = 1.0 + ((self._size / 200.0) - 1.0) * 0.6
-
         self._idx_font_size = max(8, int(10 * scale))
         self._name_font_size = max(7, int(9 * scale))
 
-        self.idx_label.setStyleSheet(f"color:#bbb; font-size:{self._idx_font_size}px;")
-        self.name_label.setStyleSheet(f"color:#eee; font-size:{self._name_font_size}px;")
+        # Solid dark grey background for text labels
+        base_label_style = "background-color: #2a2a2a; color: white;"
+
+        self.idx_label.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
+        self.name_label.setStyleSheet(f"{base_label_style} font-size:{self._name_font_size}px;")
+
         self.toggle_btn.setStyleSheet(
             f"QPushButton{{background:#333; color:#aaa; border:1px solid #444; "
             f"border-radius:3px; font-size:{max(8, int(9 * scale))}px; padding:2px 6px; text-align:left;}}"
@@ -243,8 +250,6 @@ class ThumbnailCard(QFrame):
         self._size = size
         self.img_container.setFixedHeight(size)
 
-        # OPTIMIZATION: Use the cached high-quality source image to rescale in memory.
-        # This ensures sharp zooming without new disk IO or thread overhead.
         if self._source_image and not self._source_image.isNull():
             scaled_img = self._source_image.scaled(
                 size, size,
@@ -253,10 +258,8 @@ class ThumbnailCard(QFrame):
             )
             self.img_label.setPixmap(QPixmap.fromImage(scaled_img))
         else:
-            # Only start a background worker if no image is loaded yet (lazy loading).
             self.load_thumbnail()
 
-        # Crucially: Update stack height based on current mode
         if self._is_note_mode:
             self.stack.setFixedHeight(max(self._size, 120))
         else:
@@ -272,36 +275,27 @@ class ThumbnailCard(QFrame):
     # ── Thumbnail loading ─────────────────────────────────────────────────────
 
     def load_thumbnail(self):
-        """Loads the thumbnail image asynchronously using the thread pool."""
-        # Stop any existing worker before starting a new one to prevent race conditions
         self.unload_thumbnail()
-
         sig = WorkerSignals()
         sig.finished.connect(self._on_loaded)
         self._worker = ImageLoadWorker(self.path, self._size, sig)
         self.thread_pool.start(self._worker)
 
     def unload_thumbnail(self):
-        """Cancels the worker and cleans up references."""
         if self._worker:
             self._worker.cancelled = True
             self._worker = None
         try:
-            # Clear pixmap if still existing
             self.img_label.clear()
         except (RuntimeError, AttributeError):
             pass
 
     def _on_loaded(self, path, image):
-        """Callback for when the thumbnail loading is finished."""
-        # Check if this card object has been destroyed in C++
         if sip.isdeleted(self):
             return
-
         try:
-            self._source_image = image  # Save high-quality version to cache
+            self._source_image = image
             if self.img_label:
-                # Scale the cached image for initial display size and convert to Pixmap
                 scaled_img = image.scaled(
                     self._size, self._size,
                     Qt.AspectRatioMode.KeepAspectRatio,
@@ -322,7 +316,7 @@ class ThumbnailCard(QFrame):
             self._apply_style()
 
     def _do_reload(self):
-        self._source_image = None  # Clear cache so it reloads from disk
+        self._source_image = None
         self.load_thumbnail()
         self.mark_changed(False)
 
@@ -339,22 +333,15 @@ class ThumbnailCard(QFrame):
         self._apply_style()
 
     def set_color(self, color_hex: str | None):
+        """Sets the card's color via a dedicated Accent Bar.
+        The text area remains solid dark grey for maximum readability."""
         self._color = color_hex
         if color_hex:
-            self.idx_label.setStyleSheet(f"""
-                background-color: {color_hex};
-                color: white;
-                font-weight: normal;
-                font-size: {self._idx_font_size}px;
-                border-radius: 2px;
-            """)
+            # Use the neon color for the bar
+            self.color_bar.setStyleSheet(f"background-color: {color_hex}; border: none;")
         else:
-            self.idx_label.setStyleSheet(f"""
-                background-color: transparent;
-                color: #bbb;
-                font-weight: normal;
-                font-size: {self._idx_font_size}px;
-            """)
+            # Revert to neutral theme grey
+            self.color_bar.setStyleSheet("background-color: #404040; border: none;")
 
     def update_index(self, index):
         self.index = index

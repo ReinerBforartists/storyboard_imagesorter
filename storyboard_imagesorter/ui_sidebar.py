@@ -66,7 +66,9 @@ class ColorSidebar(QWidget):
             btn = QPushButton()
             btn.setFixedSize(32, 32)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn.setToolTip(f"{name}  —  click to apply to selected")
+            btn.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            btn.customContextMenuRequested.connect(lambda pos, c=color: self.sorter._select_by_color(c))
+            btn.setToolTip(f"{name}\nLeft click to apply to selected\nRight click to select cards with this color\nShift + right click to add to the current selection")
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {color};

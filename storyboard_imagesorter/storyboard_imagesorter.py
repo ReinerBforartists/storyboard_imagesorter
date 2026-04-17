@@ -625,6 +625,31 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self._save_settings()
         event.accept()
 
+    # ── Select by color tag ───────────────────────────────────────────────────
+
+    def _select_by_color(self, color: str):
+        """
+        Selects cards based on their assigned color.
+        If the Shift key is held down, it performs an additive selection.
+        Otherwise, it replaces the current selection with the matching colors.
+        """
+        mods = QApplication.keyboardModifiers()
+        is_additive = bool(mods & Qt.KeyboardModifier.ShiftModifier)
+
+        if is_additive:
+            # Add only the cards with the target color to the current selection
+            for card in self.cards:
+                if self.temp_colors.get(card.path) == color:
+                    card.set_selected(True)
+        else:
+            # Replace current selection with all cards matching the target color
+            for card in self.cards:
+                matches_color = self.temp_colors.get(card.path) == color
+                card.set_selected(matches_color)
+
+        self._update_count()
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")

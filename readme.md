@@ -4,7 +4,7 @@
 
 **Organize your storyboard frames and image sequences quickly and visually.**
 
-Storyboard Imagesorter is a lightweight, intuitive tool designed for artists, animators, and previs professionals. It allows you to take image files and turn them into an organized sequence with color tags, text notes, and export layouts.
+Storyboard Imagesorter is a lightweight, intuitive tool designed for artists, animators, and previs professionals. It allows you to take image files and turn them into an organized sequence of images. You can work with color tags, text notes, and export layouts.
 
 ---
 
@@ -98,7 +98,7 @@ For macOS and Linux, it is recommended to run via a Python virtual environment.
 
 1. **Clone this repository:**
    ```bash
-   git clone https://github.com/yourusername/storyboard-imagesorter.git
+   git clone https://github.com/ReinerBforartists/storyboard_imagesorter
    cd storyboard-imagesorter
    ```
 

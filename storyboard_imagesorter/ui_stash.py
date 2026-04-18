@@ -147,6 +147,32 @@ class StashContainer(QWidget):
             e.accept()
             return
 
+        # # Home and End key for fast scrolling
+        # if e.key() == Qt.Key.Key_Home:
+        #     self.stash_zone.scroll.horizontalScrollBar().setValue(0)
+        #     e.accept()
+        #     return
+        # if e.key() == Qt.Key.Key_End:
+        #     self.stash_zone.scroll.horizontalScrollBar().setValue(
+        #         self.stash_zone.scroll.horizontalScrollBar().maximum()
+        #     )
+        #     e.accept()
+        #     return
+
+        # Page up, Page down for fast
+        if e.key() == Qt.Key.Key_PageUp:
+            self.stash_zone.scroll.horizontalScrollBar().setValue(
+                self.stash_zone.scroll.horizontalScrollBar().value() - 500
+            )
+            e.accept()
+            return
+        if e.key() == Qt.Key.Key_PageDown:
+            self.stash_zone.scroll.horizontalScrollBar().setValue(
+                self.stash_zone.scroll.horizontalScrollBar().value() + 500
+            )
+            e.accept()
+            return
+
         super().keyPressEvent(e)
 
 

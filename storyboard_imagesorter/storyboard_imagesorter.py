@@ -189,6 +189,12 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         register_sc("Ctrl+Right", lambda: self._move_selection_absolute("end"))
         register_sc("Ctrl+Down", lambda: self._move_selection_absolute("end"))
 
+        # Jump to start or end of image series
+        register_sc("Home", lambda: self.scroll.verticalScrollBar().setValue(0))
+        register_sc("End", lambda: self.scroll.verticalScrollBar().setValue(
+            self.scroll.verticalScrollBar().maximum()
+        ))
+
     # ── Sidebar / stash toggles ───────────────────────────────────────────────
 
     def _toggle_sidebar(self):

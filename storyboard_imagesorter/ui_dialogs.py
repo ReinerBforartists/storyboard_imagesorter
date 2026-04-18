@@ -431,6 +431,10 @@ class AboutDialog(QDialog):
             ("Shift + Scroll", "Fast scroll through images"),
             ("Right-Click (Color)", "Select cards by color"),
             ("Shift + Right-Click", "Add color to selection"),
+            ("Pos 1", "Set view to first image"),
+            ("Home", "Set view to last image"),
+            ("Page Up", "Scroll through the list"),
+            ("Page Down", "Scroll through the list"),
         ]
 
         grid_widget = QWidget()

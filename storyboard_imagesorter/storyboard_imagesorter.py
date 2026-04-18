@@ -74,6 +74,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self.custom_color = self.settings_manager.get("custom_color", "#ffffff")
 
         self.cards: list[ui_components.ThumbnailCard] = []
+        self._cancelled = False
         self._last_clicked: int | None = None
         self.thread_pool = QThreadPool()
         self.thread_pool.setMaxThreadCount(6)
@@ -195,6 +196,25 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     def show_status(self, message):
         self.status_label.setText(f"✓ {message}")
         QTimer.singleShot(5000, lambda: self.status_label.clear())
+
+    def _cancel_operation(self):
+        """Sets the cancellation flag — checked in long-running loops."""
+        self._cancelled = True
+
+    def _start_progress(self, total):
+        """Shows progress bar and cancel button."""
+        self._cancelled = False
+        self.progress_bar.setMaximum(total)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(True)
+        self.cancel_btn.setVisible(True)
+        self.status_label.hide()
+
+    def _stop_progress(self):
+        """Hides progress bar and cancel button."""
+        self.progress_bar.setVisible(False)
+        self.cancel_btn.setVisible(False)
+        self.status_label.show()
 
     def _update_empty_state(self):
         show = len(self.cards) == 0

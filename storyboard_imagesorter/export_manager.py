@@ -91,10 +91,7 @@ class ExportManager:
             # Show progress bar if we have many cards to process
             show_bar = total_cards > 20
             if show_bar:
-                self.progress_bar.setMaximum(total_cards)
-                self.progress_bar.setValue(0)
-                self.progress_bar.setVisible(True)
-                self.status_label.hide()
+                self._start_progress(total_cards)
 
             for idx, card in enumerate(self.cards):
                 base_name = os.path.basename(card.path)
@@ -116,8 +113,7 @@ class ExportManager:
                     QApplication.processEvents()
 
             if show_bar:
-                self.progress_bar.setVisible(False)
-                self.status_label.show()
+                self._stop_progress()
 
             if import_count == 0 and color_count == 0:
                 self.show_status("No matching images found")
@@ -193,18 +189,17 @@ class ExportManager:
             if reply == QMessageBox.StandardButton.No:
                 return
 
-        # Show progress bar in header
-        self.status_label.hide()
-        self.progress_bar.setMaximum(len(self.cards))
-        self.progress_bar.setValue(0)
-        self.progress_bar.setVisible(True)
+        self._start_progress(len(self.cards))
         QApplication.processEvents()
 
         summary_entries = []
         mapping_entries = []
 
         for i, card in enumerate(self.cards):
-            # Update progress bar
+            if self._cancelled:
+                self._stop_progress()
+                self.show_status("Export cancelled")
+                return
             self.progress_bar.setValue(i + 1)
             QApplication.processEvents()
 
@@ -270,8 +265,7 @@ class ExportManager:
         elif mapping_requested:
             msg += " (Mapping included)"
 
-        # Hide progress bar and show the final success message in the label
-        self.progress_bar.setVisible(False)
+        self._stop_progress()
         self.show_status(msg)
 
     # ── Contact sheet export ──────────────────────────────────────────────────
@@ -349,17 +343,16 @@ class ExportManager:
             if reply == QMessageBox.StandardButton.No:
                 return
 
-        # Show progress bar in header
-        self.status_label.hide()
-        self.progress_bar.setMaximum(len(card_chunks))
-        self.progress_bar.setValue(0)
-        self.progress_bar.setVisible(True)
+        self._start_progress(len(card_chunks))
         QApplication.processEvents()
 
         total_pages = len(card_chunks)
 
         for chunk_idx, chunk in enumerate(card_chunks):
-            # Update progress bar
+            if self._cancelled:
+                self._stop_progress()
+                self.show_status("Export cancelled")
+                return
             self.progress_bar.setValue(chunk_idx + 1)
             QApplication.processEvents()
 
@@ -372,8 +365,7 @@ class ExportManager:
 
             sheet.save(dest_path)
 
-        # Hide progress bar and show the final success message in the label
-        self.progress_bar.setVisible(False)
+        self._stop_progress()
         self.show_status(f"Exported {len(self.cards)} images in {total_pages} sheet(s)")
 
     def _render_grid_sheet(self, chunk, cols, thumb_sz, show_lbl, show_note, pad, font, char_limit):

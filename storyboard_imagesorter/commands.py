@@ -36,32 +36,27 @@ class AddImagesCommand(QUndoCommand):
         self.added_cards = []
         total = len(self.new_paths)
 
-        # Show progress bar if adding a significant number of images
         show_bar = total > 5
         if show_bar:
-            self.sorter.progress_bar.setMaximum(total)
-            self.sorter.progress_bar.setValue(0)
-            self.sorter.progress_bar.setVisible(True)
-            self.sorter.status_label.hide()
+            self.sorter._start_progress(total)
 
         for i, p in enumerate(self.new_paths):
-            # Add cards without triggering layout rebuild for every single item
+            if self.sorter._cancelled:
+                break
+
             card = self.sorter._add_image_internal(p, rebuild=False)
             self.added_cards.append(card)
 
             if show_bar:
                 self.sorter.progress_bar.setValue(i + 1)
-                # Only process events every few items to avoid slowing down the worker threads
                 if (i + 1) % 5 == 0 or (i + 1) == total:
                     QApplication.processEvents()
 
-        # Single rebuild after all items are added to the list
         self.sorter._rebuild_flow_completely()
         self.sorter._update_count()
 
         if show_bar:
-            self.sorter.progress_bar.setVisible(False)
-            self.sorter.status_label.show()
+            self.sorter._stop_progress()
 
     def undo(self):
         for card in self.added_cards:

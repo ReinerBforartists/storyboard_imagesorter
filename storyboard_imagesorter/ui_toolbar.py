@@ -192,6 +192,19 @@ class ToolbarMixin:
         self.progress_bar.setVisible(False)
         self.status_container.addWidget(self.progress_bar)
 
+        # Cancel Button (hidden by default, shown alongside progress bar)
+        self.cancel_btn = QPushButton("✕ Cancel")
+        self.cancel_btn.setFixedHeight(20)
+        self.cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.cancel_btn.setStyleSheet(
+            "QPushButton{background:#5a1a1a;color:#e0e0e0;border:none;"
+            "padding:0 8px;border-radius:3px;font-size:11px;font-weight:500;}"
+            "QPushButton:hover{background:#8a2020;}"
+        )
+        self.cancel_btn.setVisible(False)
+        self.cancel_btn.clicked.connect(self._cancel_operation)
+        self.status_container.addWidget(self.cancel_btn)
+
         # Status Label (for messages like "Exporting...")
         self.status_label = QLabel("")
         self.status_label.setStyleSheet("color: #4d8fcc; font-size: 12px; font-weight: bold; min-width: 150px;")

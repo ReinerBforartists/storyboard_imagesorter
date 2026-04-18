@@ -130,10 +130,17 @@ class ExportManager:
     def _show_export_menu(self):
         menu = QMenu(self)
         menu.setStyleSheet(constants.MENU_STYLE)
-        menu.addAction("Export images…", self._export_images)
-        menu.addAction("Export contact sheet…", self._export_contact_sheet)
+        menu.addAction("🖼 Export images…", self._export_images)
+        menu.addAction("📄 Export contact sheet…", self._export_contact_sheet)
+
+        # Add the new folder opening option, calling the method on the sorter instance
+        menu.addSeparator()
+        menu.addAction("📂 Open last export folder", lambda: self.sorter._open_folder(self.last_export_dir))
+
         btn = self.sender()
-        menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
+        if btn:
+            menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
+
 
     # ── Image export ──────────────────────────────────────────────────────────
 

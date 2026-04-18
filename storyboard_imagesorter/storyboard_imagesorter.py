@@ -673,13 +673,18 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     def _show_sort_menu(self):
         menu = QMenu(self)
         menu.setStyleSheet(constants.MENU_STYLE)
-        menu.addAction("Sort by filename A → Z", lambda: self._sort_by('name_asc'))
-        menu.addAction("Sort by filename Z → A", lambda: self._sort_by('name_desc'))
+        menu.addAction("🔤 Sort A → Z", lambda: self._sort_by('name_asc'))
+        menu.addAction("🔤 Sort Z → A", lambda: self._sort_by('name_desc'))
         menu.addSeparator()
-        menu.addAction("Sort by date oldest first", lambda: self._sort_by('date_asc'))
-        menu.addAction("Sort by date newest first", lambda: self._sort_by('date_desc'))
+        # Chronological (Using clock/time symbols)
+        menu.addAction("🕒 Oldest First", lambda: self._sort_by('date_asc'))
+        menu.addAction("🕓 Newest First", lambda: self._sort_by('date_desc'))
+
         menu.addSeparator()
-        menu.addAction("Reverse order", lambda: self._sort_by('reverse'))
+
+        # Reversing (Using rotation/direction symbols)
+        menu.addAction("⇄ Reverse Order", lambda: self._sort_by('reverse'))
+
         btn = self.sender()
         menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
 
@@ -752,6 +757,24 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                 card.set_selected(matches_color)
 
         self._update_count()
+
+    # ── Open the export folder ───────────────────────────────────────────────
+
+    def _open_folder(self, path):
+        """Opens the specified directory using the system default file explorer."""
+        if not os.path.isdir(path):
+            QMessageBox.warning(self, "Error", f"Path is not a directory:\n{path}")
+            return
+
+        try:
+            if platform.system() == "Windows":
+                os.startfile(path)
+            elif platform.system() == "Darwin":
+                subprocess.Popen(["open", path])
+            else:
+                subprocess.Popen(["xdg-open", path])
+        except Exception as ex:
+            QMessageBox.warning(self, "Cannot open folder", str(ex))
 
 
 if __name__ == "__main__":

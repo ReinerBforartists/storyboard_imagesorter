@@ -115,15 +115,16 @@ class FlowLayout(QLayout):
             if not item.widget():
                 continue
 
-            w, h = item.sizeHint().width(), item.sizeHint().height()
+        hint = item.sizeHint()
+        w, h = hint.width(), hint.height()
 
-            if x + w > rect.right() and x > (rect.left() + left_margin):
-                x = rect.left() + left_margin
-                y += lh + self._spacing
-                lh = 0
+        if x + w > rect.right() and x > (rect.left() + left_margin):
+            x = rect.left() + left_margin
+            y += lh + self._spacing
+            lh = 0
 
-            if not test_only:
-                item.setGeometry(QRect(QPoint(x, y), item.sizeHint()))
+        if not test_only:
+            item.setGeometry(QRect(QPoint(x, y), hint))
 
             x += w + self._spacing
             lh = max(lh, h)
@@ -132,7 +133,6 @@ class FlowLayout(QLayout):
 
 
 # ─── OVERLAYS & CONTAINERS ────────────────────────────────────────────────────
-
 
 class IndicatorOverlay(QWidget):
     """Paints drag-drop position indicators over the canvas."""

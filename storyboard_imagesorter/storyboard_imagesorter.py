@@ -177,6 +177,10 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         register_sc("Tab", self._toggle_stash)
         register_sc("B", self._toggle_sidebar)
 
+        # Selection Management (The Fix)
+        register_sc("Ctrl+A", self._select_all)
+        register_sc("Ctrl+D", self._deselect_all)
+
         # Delete key
         register_sc("Delete", self._remove_selected)
 

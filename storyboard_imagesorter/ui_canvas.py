@@ -400,7 +400,20 @@ class LassoContainer(QWidget):
         self.sorter._update_count()
 
     def keyPressEvent(self, e):
-        """Ensures keys bubble up to the ImageSorter."""
+        key = e.key()
+        mods = e.modifiers()
+        is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
+
+        if not is_ctrl:
+            if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
+                self.sorter._move_selected(-1)
+                e.accept()
+                return
+            elif key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
+                self.sorter._move_selected(1)
+                e.accept()
+                return
+
         super().keyPressEvent(e)
 
 # ─── FILE DROP SCROLL AREA ────────────────────────────────────────────────────

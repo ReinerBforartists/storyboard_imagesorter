@@ -276,18 +276,18 @@ class ThumbnailCard(QFrame):
     # ── Thumbnail loading ─────────────────────────────────────────────────────
 
     def load_thumbnail(self):
-        """Loads the thumbnail if it's not already loaded for the current path."""
-        # If the image is already loaded and matches the path, do nothing to avoid flickering
         if self._source_image and not self._source_image.isNull():
             return
 
-        # If there's an active worker, cancel it before starting a new one
         if self._worker:
             self._worker.cancelled = True
             self._worker = None
 
+        self._load_id = getattr(self, '_load_id', 0) + 1  # Monoton steigend
+        current_id = self._load_id
+
         sig = WorkerSignals()
-        sig.finished.connect(self._on_loaded)
+        sig.finished.connect(lambda path, img: self._on_loaded(path, img, current_id))
         self._worker = ImageLoadWorker(self.path, self._size, sig)
         self.thread_pool.start(self._worker)
 
@@ -306,8 +306,10 @@ class ThumbnailCard(QFrame):
         except (RuntimeError, AttributeError):
             pass
 
-    def _on_loaded(self, path, image):
+    def _on_loaded(self, path, image, load_id):
         if sip.isdeleted(self):
+            return
+        if load_id != self._load_id:   # Veraltetes Signal → verwerfen
             return
         try:
             self._source_image = image

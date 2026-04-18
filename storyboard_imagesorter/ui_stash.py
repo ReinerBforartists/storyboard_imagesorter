@@ -255,12 +255,12 @@ class StashCard(QFrame):
         self._apply_style()
 
     def load_thumbnail(self):
-        """Loads the thumbnail image asynchronously using the thread pool."""
-        # Stop any existing worker before starting a new one to prevent race conditions
         self.unload_thumbnail()
+        self._load_id = getattr(self, '_load_id', 0) + 1
+        current_id = self._load_id
 
         sig = WorkerSignals()
-        sig.finished.connect(self._on_loaded)
+        sig.finished.connect(lambda path, img: self._on_loaded(path, img, current_id))
         self._worker = ImageLoadWorker(self.path, self._size, sig)
         self.thread_pool.start(self._worker)
 
@@ -275,23 +275,15 @@ class StashCard(QFrame):
         except (RuntimeError, AttributeError):
             pass
 
-    def _on_loaded(self, path, image):
-        """Callback for when the thumbnail loading is finished."""
-        # 1. Safety check: Is this widget already dead?
+    def _on_loaded(self, path, image, load_id):
         if sip.isdeleted(self):
             return
-
-        # 2. Race condition check: Does this signal still belong to THIS card's current path?
-        if path != self.path:
+        if load_id != self._load_id:
             return
-
         try:
             if self.img_label:
-                # Scale the high-quality image from the worker to the card's display size
-                # This ensures we don't just see a "crop" of a large image in a small label.
                 scaled_pixmap = QPixmap.fromImage(image.scaled(
-                    self._size,
-                    self._size,
+                    self._size, self._size,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation
                 ))

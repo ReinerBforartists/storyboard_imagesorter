@@ -400,26 +400,10 @@ class LassoContainer(QWidget):
         self.sorter._update_count()
 
     def keyPressEvent(self, e):
-        """Handles keyboard shortcuts for the main canvas (Select All/Deselect/Delete)."""
-        if e.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            if e.key() == Qt.Key.Key_A:
-                self.sorter._select_all()
-                e.accept()
-                return
-            elif e.key() == Qt.Key.Key_D:
-                self.sorter._deselect_all()
-                e.accept()
-                return
-
-        if e.key() == Qt.Key.Key_Delete:
-            self.sorter._remove_selected()
-            e.accept()
-            return
-
+        """Ensures keys bubble up to the ImageSorter."""
         super().keyPressEvent(e)
 
 # ─── FILE DROP SCROLL AREA ────────────────────────────────────────────────────
-
 
 class FileDropScrollArea(QScrollArea):
     """Scroll area that accepts external file drops and emits typed signals."""

@@ -177,15 +177,14 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         register_sc("Tab", self._toggle_stash)
         register_sc("B", self._toggle_sidebar)
 
-        # --- THE POWER-MOVES (The actual task) ---
-        # We use QKeySequence to define the exact combination
+        # Delete key
+        register_sc("Delete", self._remove_selected)
+
+        # Arrow buttons sorting
         register_sc("Ctrl+Left", lambda: self._move_selection_absolute("start"))
         register_sc("Ctrl+Up", lambda: self._move_selection_absolute("start"))
         register_sc("Ctrl+Right", lambda: self._move_selection_absolute("end"))
         register_sc("Ctrl+Down", lambda: self._move_selection_absolute("end"))
-
-        # Delete key
-        register_sc("Delete", self._remove_selected)
 
     # ── Sidebar / stash toggles ───────────────────────────────────────────────
 
@@ -281,19 +280,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         mods = event.modifiers()
         is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
 
-        # --- GLOBAL POWER-MOVES (Strg + Pfeil) ---
-        if is_ctrl:
-            if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
-                self._move_selection_absolute("start")
-                event.accept()
-                return
-            elif key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
-                self._move_selection_absolute("end")
-                event.accept()
-                return
-
-        # --- GLOBAL SINGLE-STEP MOVES (Pfeil ohne Strg) ---
-        # We only do this if the event wasn't handled by a child widget
+        # Handle only simple single-step moves (arrow keys without Ctrl).
+        # All Ctrl-based moves and Delete are handled by QShortcuts
+        # to avoid double-triggering and ensure focus reliability.
         if not is_ctrl:
             if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
                 self._move_selected(-1)
@@ -304,12 +293,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                 event.accept()
                 return
 
-        # --- OTHER GLOBAL SHORTCUTS ---
-        if key == Qt.Key.Key_Delete:
-            self._remove_selected()
-            event.accept()
-            return
-
+        # Pass all other events to the base class implementation.
         super().keyPressEvent(event)
 
     def _show_about(self):

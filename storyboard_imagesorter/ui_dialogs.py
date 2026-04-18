@@ -428,6 +428,9 @@ class AboutDialog(QDialog):
             ("Double-Click", "Open in system viewer"),
             ("Drag → Stash", "Move to stash"),
             ("Double-Click Stash", "Return image to main view"),
+            ("Shift + Scroll", "Fast scroll through images"),
+            ("Right-Click (Color)", "Select cards by color"),
+            ("Shift + Right-Click", "Add color to selection"),
         ]
 
         grid_widget = QWidget()

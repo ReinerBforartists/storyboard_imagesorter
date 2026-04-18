@@ -61,8 +61,10 @@ Need to fix a drawing? Double-click an image to open it in your preferred editor
 | `←` / `→` (Arrows) | Move selection left or right |
 | `Ctrl + ←` / `→` (Arrows) | Move selection to Start / End |
 | `Plus` / `Minus` | Zoom in and out of the canvas |
-| `Scroll` | **Scroll** through large sequences |
+| `Scroll` | Scroll through sequences |
 | `Shift + Scroll` | **Fast scroll** through large sequences |
+| `Right-Click (Color)` | Select all cards with this color |
+| `Shift + Right-Click` | Add color to current selection |
 
 ### Lightbox Mode (Full-screen)
 | Shortcut | Action |

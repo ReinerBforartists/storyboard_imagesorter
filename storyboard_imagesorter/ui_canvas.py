@@ -400,7 +400,7 @@ class LassoContainer(QWidget):
         self.sorter._update_count()
 
     def keyPressEvent(self, e):
-        """Handles keyboard shortcuts for the main canvas."""
+        """Handles keyboard shortcuts for the main canvas, including Ctrl+Arrow jumps."""
         if e.modifiers() == Qt.KeyboardModifier.ControlModifier:
             if e.key() == Qt.Key.Key_A:
                 self.sorter._select_all()
@@ -410,6 +410,21 @@ class LassoContainer(QWidget):
                 self.sorter._deselect_all()
                 e.accept()
                 return
+
+            # --- POWER-MOVE: Ctrl + Arrow moves selection to Start / End ---
+            sel = [c for c in self.sorter.cards if c._selected]
+            if sel:
+                if e.key() in (Qt.Key.Key_Left, Qt.Key.Key_Up):
+                    # Move the entire selection block to index 0
+                    self.sorter._move_selection_absolute("start")
+                    e.accept()
+                    return
+                elif e.key() in (Qt.Key.Key_Right, Qt.Key.Key_Down):
+                    # Move the entire selection block to the last possible position
+                    self.sorter._move_selection_absolute("end")
+                    e.accept()
+                    return
+
         if e.key() == Qt.Key.Key_Delete:
             self.sorter._remove_selected()
             e.accept()

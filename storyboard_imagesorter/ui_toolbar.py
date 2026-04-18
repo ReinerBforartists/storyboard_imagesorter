@@ -137,26 +137,42 @@ class ToolbarMixin:
             tb.addWidget(w)
         tb.addWidget(self._sep())
 
+        # Undo / Redo Group
         b_undo = QPushButton("↺")
         b_undo.setToolTip("Undo (Ctrl+Z)")
         b_undo.clicked.connect(self.undo_stack.undo)
         b_redo = QPushButton("↻")
         b_redo.setToolTip("Redo (Ctrl+Y)")
         b_redo.clicked.connect(self.undo_stack.redo)
-        b_bk = QPushButton("⇠")
-        b_bk.setToolTip("Move selected left (←)")
-        b_bk.clicked.connect(lambda: self._move_selected(-1))
-        b_fw = QPushButton("⇢")
-        b_fw.setToolTip("Move selected right (→)")
-        b_fw.clicked.connect(lambda: self._move_selected(1))
 
-        for w in (b_undo, b_redo, b_bk, b_fw):
+        # Movement Group (Step by step and Absolute jumps)
+        b_start = QPushButton("⇠|")
+        b_start.setToolTip("Move selection to START (Ctrl + ←)")
+        b_start.clicked.connect(lambda: self._move_selection_absolute("start"))
+
+        b_bk = QPushButton("⇠")
+        b_bk.setToolTip("Move selection left (←)\nCtrl + ← : Move selection to Start")
+        # Modified: Check for Ctrl modifier during click
+        b_bk.clicked.connect(lambda: self._move_selected_with_modifier(-1))
+
+        b_fw = QPushButton("⇢")
+        b_fw.setToolTip("Move selection right (→)\nCtrl + → : Move selection to End")
+        # Modified: Check for Ctrl modifier during click
+        b_fw.clicked.connect(lambda: self._move_selected_with_modifier(1))
+
+        b_end = QPushButton("|⇢")
+        b_end.setToolTip("Move selection to END (Ctrl + →)")
+        b_end.clicked.connect(lambda: self._move_selection_absolute("end"))
+
+        # Apply styles to all movement/undo buttons
+        for w in (b_undo, b_redo, b_start, b_bk, b_fw, b_end):
             w.setStyleSheet(utils_workers._btn("#252535", "#32324a", True))
 
+        # Layout: Undo/Redo | Sep | Start | Left | Right | End
         for w in (b_undo, b_redo):
             tb.addWidget(w)
         tb.addWidget(self._sep())
-        for w in (b_bk, b_fw):
+        for w in (b_start, b_bk, b_fw, b_end):
             tb.addWidget(w)
         tb.addWidget(self._sep())
 

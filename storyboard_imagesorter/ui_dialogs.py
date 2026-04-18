@@ -418,6 +418,7 @@ class AboutDialog(QDialog):
             ("Ctrl + Shift + C", "Clear colors from selected"),
             ("Delete", "Remove selected images"),
             ("← → (Main View)", "Move selected images"),
+            ("Ctrl + ← / →", "Move selection to Start / End"),
             ("Tab", "Toggle Stash open/closed"),
             ("B", "Toggle Sidebar open/closed"),
             ("Shift + Click", "Add to selection"),

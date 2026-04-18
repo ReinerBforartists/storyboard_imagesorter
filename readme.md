@@ -55,11 +55,12 @@ Need to fix a drawing? Double-click an image to open it in your preferred editor
 | `Space` | Open/Close Full-screen Lightbox |
 | `Ctrl + Z` / `Ctrl + Y` | Undo / Redo last action |
 | `Ctrl + A` / `Ctrl + D` | Select All / Deselect All |
-| `Delete` | Remove selected images from the sequence |
+| `Delete` | Remove selection from the sequence |
 | `Tab` | Hide/Show the Stash at the bottom |
 | `B` | Hide/Show the Color Sidebar |
-| `←` / `→` (Arrows) | Move selected images left or right in sequence |
-| `Plus / Minus` | Zoom in and out of the canvas |
+| `←` / `→` (Arrows) | Move selection left or right |
+| `Ctrl + ←` / `→` (Arrows) | Move selection to Start / End |
+| `Plus` / `Minus` | Zoom in and out of the canvas |
 | `Scroll` | **Scroll** through large sequences |
 | `Shift + Scroll` | **Fast scroll** through large sequences |
 
@@ -67,8 +68,8 @@ Need to fix a drawing? Double-click an image to open it in your preferred editor
 | Shortcut | Action |
 | :--- | :--- |
 | `Esc` / `Space` | Close Lightbox |
-| `←` / `Up Arrow` | Previous image |
-| `→` / `Down Arrow` | Next image |
+| `←` / `↑` (Arrows) | Previous image |
+| `→` / `↓` (Arrows) | Next image |
 
 ---
 

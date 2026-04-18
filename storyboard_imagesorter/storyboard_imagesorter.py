@@ -252,10 +252,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         # This ensures that all newly visible cards get their labels/images instantly.
         self._update_visible_cards()
 
-
     def _rebuild_y_cache(self):
-        """Updates the Y-cache with current widget geometries."""
-        self._y_cache = [(card, card.y(), card.height()) for card in self.cards]
+        """No longer used in the new robust implementation."""
+        pass
 
     def wheelEvent(self, e):
         # Standard scrolling only (Zooming moved to Numpad keys to avoid conflicts)
@@ -477,6 +476,59 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         new_paths = [c.path for c in remaining[:ip] + moving + remaining[ip:]]
         self.undo_stack.push(commands.MoveCardsCommand(self, old, new_paths))
 
+    def _move_selection_absolute(self, target: str):
+        """
+        Moves the entire selection block to either the very beginning
+        or the very end of the current card list.
+        """
+        # 1. Identify all currently selected cards
+        sel = [c for c in self.cards if c._selected]
+        if not sel:
+            return
+
+        # 2. Capture current state for Undo
+        old_paths = [c.path for c in self.cards]
+
+        # 3. Separate selected paths from the rest (preserving order of non-selected)
+        sel_paths = [c.path for c in sel]
+        remaining_paths = [c.path for c in self.cards if c.path not in sel_paths]
+
+        # 4. Calculate new order based on target
+        if target == "start":
+            new_paths = sel_paths + remaining_paths
+        else:  # target == "end"
+            new_paths = remaining_paths + sel_paths
+
+        # 5. Only execute if the order actually changes
+        if new_paths != old_paths:
+            self.undo_stack.push(commands.MoveCardsCommand(self, old_paths, new_paths))
+
+    def _move_selected_with_modifier(self, direction):
+        """Handles button clicks with optional Ctrl modifier for absolute jumps."""
+        mods = QApplication.keyboardModifiers()
+        if mods & Qt.KeyboardModifier.ControlModifier:
+            target = "start" if direction == -1 else "end"
+            self._move_selection_absolute(target)
+        else:
+            self._move_selected(direction)
+
+        # Use a small delay to allow the layout engine to settle
+        QTimer.singleShot(100, self._refresh_after_move)
+
+    def _refresh_after_move(self):
+        """Ensures the UI is visually consistent after a move operation."""
+        # 1. Tell the layout to recalculate everything
+        self.flow_layout.invalidate()
+
+        # 2. Force a single pass of the event loop to let geometry settle
+        QTimer.singleShot(50, self._finalize_move_refresh)
+
+    def _finalize_move_refresh(self):
+        """Final step of refresh after layout has settled."""
+        # Direct update without relying on a potentially stale cache
+        self._update_visible_cards()
+        self._update_count()
+
     def _rebuild_flow_completely(self):
         """Full reconstruction of the layout and cache (used for heavy operations like adding/removing cards)."""
         while self.flow_layout.count():
@@ -528,37 +580,42 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
     def _update_visible_cards(self):
         """
-        Update thumbnails and labels for cards as they enter/leave the viewport.
-        This handles the lazy loading of both images and label states during scroll.
+        Update thumbnails and labels for cards using direct geometry checks.
+        This version is robust against layout shifts after moving cards.
         """
+        # Get current viewport info
+        viewport = self.scroll.viewport()
+        if not viewport:
+            return
+
+        v_rect = viewport.rect()
         scroll_y = self.scroll.verticalScrollBar().value()
-        view_height = self.scroll.viewport().height()
 
-        # Larger margin ensures smooth appearance while scrolling fast
-        margin = int(view_height * 0.4)
-        vis_top = scroll_y - margin
-        vis_bot = scroll_y + view_height + margin
+        # The actual visible area in the scroll area (in global/parent coordinates)
+        visible_area = v_rect.translated(0, scroll_y)
 
-        # Fetch settings once to avoid redundant calls inside the loop
+        # Add a generous buffer to prevent flickering during scrolling
+        buffer = 200
+        vis_top = visible_area.top() - buffer
+        vis_bot = visible_area.bottom() + buffer
+
         show_idx = self.settings_manager.get("show_index", True)
         show_name = self.settings_manager.get("show_filename", True)
         show_notes = self.settings_manager.get("show_notes", True)
 
-        for card, y, h in self._y_cache:
-            in_range = (y + h) >= vis_top and y <= vis_bot
-            has_px = card.img_label.pixmap() and not card.img_label.pixmap().isNull()
+        for card in self.cards:
+            # Get the actual position of the card relative to the scroll area
+            card_rect = card.geometry()
 
-            if in_range:
-                # 1. Handle Thumbnail loading
-                if not has_px:
-                    card.load_thumbnail()
-
-                # 2. Handle Label state (Lazy Load labels)
+            # Check if the card is within the expanded visible range
+            if (card_rect.bottom() >= vis_top and card_rect.top() <= vis_bot):
+                # Card is visible: Load content
+                card.load_thumbnail()
                 card.set_label_visibility(show_idx, show_name, show_notes)
                 if show_notes:
                     card.set_note_text(self.custom_notes.get(card.path, ""))
-            elif has_px:
-                # Unload thumbnail when it leaves the viewport to save memory
+            else:
+                # Card is not visible: Unload to save memory
                 card.unload_thumbnail()
 
     # ── Selection ─────────────────────────────────────────────────────────────

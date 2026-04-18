@@ -276,18 +276,33 @@ class ThumbnailCard(QFrame):
     # ── Thumbnail loading ─────────────────────────────────────────────────────
 
     def load_thumbnail(self):
-        self.unload_thumbnail()
+        """Loads the thumbnail if it's not already loaded for the current path."""
+        # If the image is already loaded and matches the path, do nothing to avoid flickering
+        if self._source_image and not self._source_image.isNull():
+            return
+
+        # If there's an active worker, cancel it before starting a new one
+        if self._worker:
+            self._worker.cancelled = True
+            self._worker = None
+
         sig = WorkerSignals()
         sig.finished.connect(self._on_loaded)
         self._worker = ImageLoadWorker(self.path, self._size, sig)
         self.thread_pool.start(self._worker)
 
     def unload_thumbnail(self):
+        """Unloads the thumbnail and cancels any active loading process."""
         if self._worker:
             self._worker.cancelled = True
             self._worker = None
+
+        # Clear the source image cache
+        self._source_image = None
+
         try:
-            self.img_label.clear()
+            if self.img_label:
+                self.img_label.clear()
         except (RuntimeError, AttributeError):
             pass
 

@@ -661,10 +661,11 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         sel = [i for i, c in enumerate(self.cards) if c._selected]
         if not sel:
             return
-        tgt = (max(sel) + 1) if direction == 1 else (min(sel) - 1)
-        tgt = max(0, min(len(self.cards) - 1, tgt))
-        if tgt in sel:
+        if direction == 1 and max(sel) >= len(self.cards) - 1:
             return
+        if direction == -1 and min(sel) <= 0:
+            return
+        tgt = (max(sel) + 1) if direction == 1 else (min(sel) - 1)
         self._move_cards_by_paths([self.cards[i].path for i in sel], tgt, direction)
 
     def _remove_selected(self):

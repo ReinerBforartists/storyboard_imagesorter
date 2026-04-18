@@ -85,6 +85,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self._lazy_timer = QTimer(singleShot=True)
         self._lazy_timer.timeout.connect(self._update_visible_cards)
 
+        self._status_timer = QTimer(singleShot=True)
+        self._status_timer.timeout.connect(self.status_label.clear)
+
         # Cache for card positions to avoid heavy .y() calls during scrolling
         self._y_cache = []
 
@@ -206,7 +209,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
     def show_status(self, message):
         self.status_label.setText(f"✓ {message}")
-        QTimer.singleShot(5000, lambda: self.status_label.clear())
+        self._status_timer.start(5000)
 
     def _cancel_operation(self):
         """Sets the cancellation flag — checked in long-running loops."""

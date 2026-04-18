@@ -415,7 +415,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     def _flash_card(self, card):
         orig = card.styleSheet()
         card.setStyleSheet("background:#2a1a00;border:2px solid #e8872a;border-radius:5px;")
-        QTimer.singleShot(600, lambda: card.setStyleSheet(orig) if card else None)
+        QTimer.singleShot(600, lambda: card.setStyleSheet(orig) if not sip.isdeleted(card) else None)
 
     # ── Lightbox ──────────────────────────────────────────────────────────────
 

@@ -671,22 +671,30 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     # ── Sort menu ─────────────────────────────────────────────────────────────
 
     def _show_sort_menu(self):
+        """Displays the sorting menu including selection management with visual anchors."""
         menu = QMenu(self)
         menu.setStyleSheet(constants.MENU_STYLE)
+
+        # --- Selection Management ---
+        # Using checkmark and empty square for immediate recognition of select/deselect
+        menu.addAction("☑ Select All\tCtrl+A", self._select_all)
+        menu.addAction("☐ Deselect All\tCtrl+D", self._deselect_all)
+
+        menu.addSeparator()
+
+        # --- Sorting Operations ---
         menu.addAction("🔤 Sort A → Z", lambda: self._sort_by('name_asc'))
         menu.addAction("🔤 Sort Z → A", lambda: self._sort_by('name_desc'))
         menu.addSeparator()
-        # Chronological (Using clock/time symbols)
         menu.addAction("🕒 Oldest First", lambda: self._sort_by('date_asc'))
         menu.addAction("🕓 Newest First", lambda: self._sort_by('date_desc'))
-
         menu.addSeparator()
-
-        # Reversing (Using rotation/direction symbols)
-        menu.addAction("⇄ Reverse Order", lambda: self._sort_by('reverse'))
+        menu.addAction("🔄 Reverse Order", lambda: self._sort_by('reverse'))
 
         btn = self.sender()
-        menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
+        if btn:
+            menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
+
 
     def _sort_by(self, mode):
         if not self.cards:

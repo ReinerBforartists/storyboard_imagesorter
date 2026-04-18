@@ -388,9 +388,7 @@ class ToolbarMixin:
         menu.addAction(label_wa)
 
         menu.addSeparator()
-        menu.addAction("Select all\tCtrl+A", self._select_all)
-        menu.addAction("Deselect all\tCtrl+D", self._deselect_all)
-        menu.addSeparator()
+
         menu.addAction("  Reset all settings to defaults", self._reset_settings)
 
         btn = self.sender()

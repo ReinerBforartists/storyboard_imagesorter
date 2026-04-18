@@ -157,7 +157,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
     def _setup_shortcuts(self):
         """Registers global shortcuts directly to the window for maximum reliability."""
-        from PyQt6.QtGui import QShortcut, QKeySequence
 
         # Helper to register a shortcut
         def register_sc(seq, callback):

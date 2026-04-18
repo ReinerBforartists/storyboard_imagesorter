@@ -135,7 +135,7 @@ class ExportManager:
 
         # Add the new folder opening option, calling the method on the sorter instance
         menu.addSeparator()
-        menu.addAction("📂 Open last export folder", lambda: self.sorter._open_folder(self.last_export_dir))
+        menu.addAction("📂 Open last export folder", lambda: self._open_folder(self.last_export_dir))
 
         btn = self.sender()
         if btn:

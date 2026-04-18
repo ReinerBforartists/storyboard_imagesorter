@@ -133,26 +133,19 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             del self.custom_notes[path]
 
     def _apply_label_settings(self):
-        """
-        Apply label visibility settings only to currently visible cards.
-        This prevents heavy UI rebuilds and eliminates lag when toggling settings.
-        """
         show_idx = self.settings_manager.get("show_index", True)
         show_name = self.settings_manager.get("show_filename", True)
         show_notes = self.settings_manager.get("show_notes", True)
 
-        # Calculate the current viewport boundaries
         scroll_y = self.scroll.verticalScrollBar().value()
         view_height = self.scroll.viewport().height()
+        buffer = int(view_height * 0.1)
+        vis_top = scroll_y - buffer
+        vis_bot = scroll_y + view_height + buffer
 
-        # Use a small margin to prevent flickering at the edges
-        margin = int(view_height * 0.1)
-        vis_top = scroll_y - margin
-        vis_bot = scroll_y + view_height + margin
-
-        # Iterate through cached positions for high-performance updates
-        for card, y, h in self._y_cache:
-            if (y + h) >= vis_top and y <= vis_bot:
+        for card in self.cards:
+            rect = card.geometry()
+            if rect.bottom() >= vis_top and rect.top() <= vis_bot:
                 card.set_label_visibility(show_idx, show_name, show_notes)
                 if show_notes:
                     card.set_note_text(self.custom_notes.get(card.path, ""))

@@ -256,6 +256,7 @@ class StashCard(QFrame):
 
     def load_thumbnail(self):
         self.unload_thumbnail()
+
         self._load_id = getattr(self, '_load_id', 0) + 1
         current_id = self._load_id
 

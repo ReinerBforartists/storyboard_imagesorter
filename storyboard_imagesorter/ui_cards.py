@@ -283,7 +283,7 @@ class ThumbnailCard(QFrame):
             self._worker.cancelled = True
             self._worker = None
 
-        self._load_id = getattr(self, '_load_id', 0) + 1  # Monoton steigend
+        self._load_id = getattr(self, '_load_id', 0) + 1
         current_id = self._load_id
 
         sig = WorkerSignals()
@@ -309,7 +309,7 @@ class ThumbnailCard(QFrame):
     def _on_loaded(self, path, image, load_id):
         if sip.isdeleted(self):
             return
-        if load_id != self._load_id:   # Veraltetes Signal → verwerfen
+        if load_id != self._load_id:
             return
         try:
             self._source_image = image

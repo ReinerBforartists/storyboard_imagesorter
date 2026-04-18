@@ -333,10 +333,23 @@ class LassoContainer(QWidget):
                 paths = [u.toLocalFile() for u in e.mimeData().urls()]
                 txt_files = [p for p in paths if p.lower().endswith('.txt')]
                 img_files = [p for p in paths if p.lower().endswith(constants.IMAGE_EXTS)]
+
+                # Find the sorter summary among dropped txt files by checking the marker.
+                summary_file = None
+                for t in txt_files:
+                    try:
+                        with open(t, 'r', encoding='utf-8') as f:
+                            if f.read(30).startswith('STORYBOARD_IMAGESORTER_DATA'):
+                                summary_file = t
+                                break
+                    except Exception:
+                        pass
+
                 if img_files:
-                    self.sorter._add_images_bulk(img_files)
-                if txt_files:
-                    self.sorter.import_notes_from_summary(txt_files[0])
+                    self.sorter._add_images_bulk(img_files, summary_path=summary_file)
+                elif summary_file:
+                    self.sorter.import_notes_from_summary(summary_file)
+
                 e.acceptProposedAction()
             else:
                 e.ignore()
@@ -417,6 +430,7 @@ class FileDropScrollArea(QScrollArea):
     def __init__(self, *a, **kw):
         super().__init__(*a, **kw)
         self.setAcceptDrops(True)
+        self.sorter = None  # injected by _build_canvas
 
     def dragEnterEvent(self, e):
         if e.mimeData().hasFormat("text/uri-list"):
@@ -434,13 +448,16 @@ class FileDropScrollArea(QScrollArea):
         if e.mimeData().hasFormat("text/uri-list"):
             paths = [u.toLocalFile() for u in e.mimeData().urls()]
 
-            valid_images = [p for p in paths if p.lower().endswith(constants.IMAGE_EXTS)]
-            if valid_images:
-                self.files_dropped.emit(valid_images)
-
+            img_files = [p for p in paths if p.lower().endswith(constants.IMAGE_EXTS)]
             txt_files = [p for p in paths if p.lower().endswith('.txt')]
-            if txt_files:
-                QTimer.singleShot(0, lambda: self.summary_dropped.emit(txt_files[0]))
+
+            if img_files:
+                # Pass summary_path so it is applied after push() completes and all
+                # cards are guaranteed to be in self.cards.
+                self.sorter._add_images_bulk(img_files, summary_path=txt_files[0] if txt_files else None)
+            elif txt_files:
+                # No images — cards already present, apply directly.
+                self.sorter.import_notes_from_summary(txt_files[0])
 
             e.acceptProposedAction()
         else:

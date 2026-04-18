@@ -47,18 +47,28 @@ class ExportManager:
         """
         Parses a summary .txt file and restores notes and color tags
         for any matching images currently loaded.
+        Only processes files that start with STORYBOARD_IMAGESORTER_DATA.
         """
         if not os.path.exists(summary_file_path):
             self.show_status("File not found!")
+            return
+
+        try:
+            with open(summary_file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception as e:
+            print(f"Import Error: {e}")
+            self.show_status("Import failed")
+            return
+
+        # Silently ignore files that are not a sorter summary (e.g. mapping .txt or README).
+        if not content.startswith('STORYBOARD_IMAGESORTER_DATA'):
             return
 
         new_notes = {}
         new_colors = {}
 
         try:
-            with open(summary_file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-
             blocks = re.findall(r"(?s)FILE:\s*(.*?)\n(.*?)(?=FILE:|$)", content)
 
             for filename, block in blocks:
@@ -227,7 +237,7 @@ class ExportManager:
             summary_path = os.path.join(folder, f"{prefix}_sorter_data.txt")
             try:
                 with open(summary_path, 'w', encoding='utf-8') as f:
-                    f.write("STORYBOARD NOTES & COLOR SUMMARY\n")
+                    f.write("STORYBOARD_IMAGESORTER_DATA\n")
                     f.write("=" * 35 + "\n\n")
                     for entry in summary_entries:
                         f.write(f"FILE: {entry['filename']}\n")

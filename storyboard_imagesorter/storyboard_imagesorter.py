@@ -317,11 +317,13 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
         return card
 
-    def _add_images_bulk(self, paths):
+    def _add_images_bulk(self, paths, summary_path=None):
         existing = {c.path for c in self.cards}
         new = [p for p in paths if p not in existing]
         if new:
             self.undo_stack.push(commands.AddImagesCommand(self, new))
+        if summary_path:
+            self.import_notes_from_summary(summary_path)
 
     def _add_files_dialog(self):
         paths, _ = QFileDialog.getOpenFileNames(
@@ -346,13 +348,21 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             if candidates:
                 summary_paths = candidates[:1]
 
-        if image_paths:
-            self._add_images_bulk(image_paths)
+        # Identify the sorter summary by its marker (ignores mapping files etc.)
+        summary_file = None
+        for sp in summary_paths:
+            try:
+                with open(sp, 'r', encoding='utf-8') as f:
+                    if f.read(30).startswith('STORYBOARD_IMAGESORTER_DATA'):
+                        summary_file = sp
+                        break
+            except Exception:
+                pass
 
-        if summary_paths:
-            QTimer.singleShot(0, lambda: [
-                self.import_notes_from_summary(sp) for sp in summary_paths
-            ])
+        if image_paths:
+            self._add_images_bulk(image_paths, summary_path=summary_file)
+        elif summary_file:
+            self.import_notes_from_summary(summary_file)
 
     def _open_image(self, path):
         try:
@@ -464,6 +474,8 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self._update_empty_state()
         self._update_window_title()
         self._lazy_timer.start(80)
+
+
 
     def _reorder_flow_widgets(self):
         """

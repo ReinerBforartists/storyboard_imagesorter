@@ -65,7 +65,7 @@ class ColorSidebar(QWidget):
 
         self.palette_names = [
             "Red", "Green", "Blue",
-            "Yellow", "PMagentaurple", "Orange",
+            "Yellow", "Magenta", "Orange",
             "Cyan", "Brown", "Grey", "White"
         ]
 

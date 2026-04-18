@@ -115,16 +115,16 @@ class FlowLayout(QLayout):
             if not item.widget():
                 continue
 
-        hint = item.sizeHint()
-        w, h = hint.width(), hint.height()
+            hint = item.sizeHint()
+            w, h = hint.width(), hint.height()
 
-        if x + w > rect.right() and x > (rect.left() + left_margin):
-            x = rect.left() + left_margin
-            y += lh + self._spacing
-            lh = 0
+            if x + w > rect.right() and x > (rect.left() + left_margin):
+                x = rect.left() + left_margin
+                y += lh + self._spacing
+                lh = 0
 
-        if not test_only:
-            item.setGeometry(QRect(QPoint(x, y), hint))
+            if not test_only:
+                item.setGeometry(QRect(QPoint(x, y), hint))
 
             x += w + self._spacing
             lh = max(lh, h)

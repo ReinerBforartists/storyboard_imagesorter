@@ -85,14 +85,14 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self._lazy_timer = QTimer(singleShot=True)
         self._lazy_timer.timeout.connect(self._update_visible_cards)
 
-        self._status_timer = QTimer(singleShot=True)
-        self._status_timer.timeout.connect(self.status_label.clear)
-
         # Cache for card positions to avoid heavy .y() calls during scrolling
         self._y_cache = []
 
         self._setup_shortcuts()
         self._build_ui()
+
+        self._status_timer = QTimer(singleShot=True)
+        self._status_timer.timeout.connect(self.status_label.clear)
 
         # FIX: Install event filter on the window to catch clicks even in empty areas
         self.installEventFilter(self)
@@ -176,6 +176,10 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         register_sc("Ctrl+A", self._select_all)
         register_sc("Ctrl+D", self._deselect_all)
 
+        # Zoom in out
+        register_sc("Num++", self._zoom_in)
+        register_sc("Num+-", self._zoom_out)
+
         # Delete key
         register_sc("Delete", self._remove_selected)
 
@@ -258,6 +262,16 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         # We use singleShot(0) so this runs immediately after the current event loop finishes.
         QTimer.singleShot(0, self._refresh_after_zoom)
         self._save_settings()
+
+    def _zoom_in(self):
+        idx = self.zoom_box.currentIndex()
+        if idx < self.zoom_box.count() - 1:
+            self.zoom_box.setCurrentIndex(idx + 1)
+
+    def _zoom_out(self):
+        idx = self.zoom_box.currentIndex()
+        if idx > 0:
+            self.zoom_box.setCurrentIndex(idx - 1)
 
     def _refresh_after_zoom(self):
         """Rebuilds position cache and refreshes visible cards immediately after zoom."""

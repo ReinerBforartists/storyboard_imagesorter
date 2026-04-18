@@ -160,17 +160,32 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     # ── Shortcuts ─────────────────────────────────────────────────────────────
 
     def _setup_shortcuts(self):
-        def sc(seq, fn):
-            QShortcut(QKeySequence(seq), self).activated.connect(fn)
+        """Registers global shortcuts directly to the window for maximum reliability."""
+        from PyQt6.QtGui import QShortcut, QKeySequence
 
-        sc("Ctrl+Z", self.undo_stack.undo)
-        sc("Ctrl+Y", self.undo_stack.redo)
-        sc("Ctrl+Shift+Z", self.undo_stack.redo)
-        # Ctrl+A, Ctrl+D, and Delete are handled in each container's keyPressEvent
-        # so the correct context (main canvas vs. stash) is respected.
-        sc("Ctrl+Shift+C", self._clear_selected_colors)
-        sc("Tab", self._toggle_stash)
-        sc("B", self._toggle_sidebar)
+        # Helper to register a shortcut
+        def register_sc(seq, callback):
+            shortcut = QShortcut(QKeySequence(seq), self)
+            shortcut.activated.connect(callback)
+            return shortcut
+
+        # Standard Shortcuts
+        register_sc("Ctrl+Z", self.undo_stack.undo)
+        register_sc("Ctrl+Y", self.undo_stack.redo)
+        register_sc("Ctrl+Shift+Z", self.undo_stack.redo)
+        register_sc("Ctrl+Shift+C", self._clear_selected_colors)
+        register_sc("Tab", self._toggle_stash)
+        register_sc("B", self._toggle_sidebar)
+
+        # --- THE POWER-MOVES (The actual task) ---
+        # We use QKeySequence to define the exact combination
+        register_sc("Ctrl+Left", lambda: self._move_selection_absolute("start"))
+        register_sc("Ctrl+Up", lambda: self._move_selection_absolute("start"))
+        register_sc("Ctrl+Right", lambda: self._move_selection_absolute("end"))
+        register_sc("Ctrl+Down", lambda: self._move_selection_absolute("end"))
+
+        # Delete key
+        register_sc("Delete", self._remove_selected)
 
     # ── Sidebar / stash toggles ───────────────────────────────────────────────
 
@@ -261,38 +276,39 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         super().wheelEvent(e)
 
     def keyPressEvent(self, event):
-        """Handles keyboard input including robust Numpad zooming."""
+        """Global keyboard handler for the entire application."""
         key = event.key()
+        mods = event.modifiers()
+        is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
 
-        # 1. Identify all possible "Plus" keys (Main Keyboard and multiple Numpad variations)
-        plus_keys = [Qt.Key.Key_Equal]  # Standard keyboard '+' is often '=' with Shift
-        for potential in ['Key_Add', 'Key_Plus']:
-            k = getattr(Qt.Key, potential, None)
-            if k and k not in plus_keys:
-                plus_keys.append(k)
-
-        # 2. Identify all possible "Minus" keys
-        minus_keys = [Qt.Key.Key_Minus]
-        for potential in ['Key_Subtract']:
-            k = getattr(Qt.Key, potential, None)
-            if k and k not in minus_keys:
-                minus_keys.append(k)
-
-        # Zoom In
-        if key in plus_keys:
-            idx = self.zoom_box.currentIndex()
-            if idx < len(constants.ZOOM_STEPS) - 1:
-                self.zoom_box.setCurrentIndex(idx + 1)
+        # --- GLOBAL POWER-MOVES (Strg + Pfeil) ---
+        if is_ctrl:
+            if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
+                self._move_selection_absolute("start")
+                event.accept()
+                return
+            elif key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
+                self._move_selection_absolute("end")
                 event.accept()
                 return
 
-        # Zoom Out
-        if key in minus_keys:
-            idx = self.zoom_box.currentIndex()
-            if idx > 0:
-                self.zoom_box.setCurrentIndex(idx - 1)
+        # --- GLOBAL SINGLE-STEP MOVES (Pfeil ohne Strg) ---
+        # We only do this if the event wasn't handled by a child widget
+        if not is_ctrl:
+            if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
+                self._move_selected(-1)
                 event.accept()
                 return
+            elif key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
+                self._move_selected(1)
+                event.accept()
+                return
+
+        # --- OTHER GLOBAL SHORTCUTS ---
+        if key == Qt.Key.Key_Delete:
+            self._remove_selected()
+            event.accept()
+            return
 
         super().keyPressEvent(event)
 
@@ -654,24 +670,10 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         # Deactivate stash visual state when clicking a card in the main view
         self.stash_zone.set_active(False)
 
-
     def eventFilter(self, obj, event):
-        # Handle clicks on any part of the main window to deactivate the stash
+        """Simplified filter: only handles stash deactivation."""
         if event.type() == QEvent.Type.MouseButtonPress:
             self.stash_zone.set_active(False)
-
-        # Existing logic for handling arrow keys when lightboxes are active
-        if event.type() == QEvent.Type.KeyPress:
-            lightboxes = self.findChildren(ui_dialogs.Lightbox)
-            if any(lb.isVisible() for lb in lightboxes):
-                return False
-            k = event.key()
-            if k in (Qt.Key.Key_Left, Qt.Key.Key_Up):
-                self._move_selected(-1)
-                return True
-            if k in (Qt.Key.Key_Right, Qt.Key.Key_Down):
-                self._move_selected(1)
-                return True
         return super().eventFilter(obj, event)
 
     def _move_selected(self, direction):

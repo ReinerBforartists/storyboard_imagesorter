@@ -54,6 +54,7 @@ class SettingsManager:
             "custom_color": "#ffffff",
             "sidebar_visible": False,
             "stash_visible": False,
+            "scroll_zone_alpha": 80,
         }
         self.settings = {}
 

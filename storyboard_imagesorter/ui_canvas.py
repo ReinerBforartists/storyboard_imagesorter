@@ -178,19 +178,21 @@ class IndicatorOverlay(QWidget):
         vp_h = vp.height()
         w = self.width()
         scroll_y = scroll_area.verticalScrollBar().value()
+        alpha = self.sorter.settings_manager.get("scroll_zone_alpha", 80)
+        alpha_active = min(255, int(alpha * 1.75))
 
-        # Top zone — offset by scroll position so it stays at the visible top edge
+        # Top zone
         top_y = scroll_y
         top_active = mouse_vp.y() < zone_h
-        top_color = QColor(45, 111, 171, 140) if top_active else QColor(45, 111, 171, 60)
+        top_color = QColor(45, 111, 171, alpha_active) if top_active else QColor(45, 111, 171, alpha)
         painter.fillRect(QRect(0, top_y, w, zone_h), top_color)
         painter.setPen(QColor(77, 143, 204, 200 if top_active else 120))
         painter.drawText(QRect(0, top_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▲")
 
-        # Bottom zone — offset by scroll position so it stays at the visible bottom edge
+        # Bottom zone
         bot_y = scroll_y + vp_h - zone_h
         bot_active = mouse_vp.y() > vp_h - zone_h
-        bot_color = QColor(45, 111, 171, 140) if bot_active else QColor(45, 111, 171, 60)
+        bot_color = QColor(45, 111, 171, alpha_active) if bot_active else QColor(45, 111, 171, alpha)
         painter.fillRect(QRect(0, bot_y, w, zone_h), bot_color)
         painter.setPen(QColor(77, 143, 204, 200 if bot_active else 120))
         painter.drawText(QRect(0, bot_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▼")

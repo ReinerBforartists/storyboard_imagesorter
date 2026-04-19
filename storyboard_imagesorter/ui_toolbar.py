@@ -288,7 +288,7 @@ class ToolbarMixin:
         menu = QMenu(self)
         menu.setStyleSheet(constants.MENU_STYLE)
 
-        # Gap control (bleibt gleich)
+        # Gap control
         gap_wa = QWidgetAction(menu)
         gap_container = QWidget()
         gap_container.setStyleSheet("background:#252525; border:1px solid #383838; border-radius:6px;")
@@ -309,6 +309,42 @@ class ToolbarMixin:
         spin.setValue(self.current_spacing)
         spin.setFixedWidth(48)
         spin.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
+
+        # Scroll zone opacity control
+        sz_wa = QWidgetAction(menu)
+        sz_container = QWidget()
+        sz_container.setStyleSheet("background:#252525; border:1px solid #383838; border-radius:6px;")
+        sz_row = QHBoxLayout(sz_container)
+        sz_row.setContentsMargins(12, 6, 12, 6)
+        sz_row.setSpacing(8)
+
+        sz_lbl = QLabel("Scroll zone opacity")
+        sz_lbl.setStyleSheet("font-size:11px;color:#bbb;")
+        sz_slider = QSlider(Qt.Orientation.Horizontal)
+        sz_slider.setRange(20, 220)
+        sz_slider.setValue(self.settings_manager.get("scroll_zone_alpha", 80))
+        sz_slider.setFixedWidth(110)
+
+        sz_spin = QSpinBox()
+        sz_spin.setMinimumHeight(30)
+        sz_spin.setRange(20, 220)
+        sz_spin.setValue(self.settings_manager.get("scroll_zone_alpha", 80))
+        sz_spin.setFixedWidth(48)
+        sz_spin.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
+
+        def _sync_sz(val, block_widget):
+            block_widget.blockSignals(True)
+            block_widget.setValue(val)
+            block_widget.blockSignals(False)
+            self.settings_manager.set("scroll_zone_alpha", val)
+            self._save_settings()
+
+        sz_slider.valueChanged.connect(lambda v: _sync_sz(v, sz_spin))
+        sz_spin.valueChanged.connect(lambda v: _sync_sz(v, sz_slider))
+        for w in (sz_lbl, sz_slider, sz_spin):
+            sz_row.addWidget(w)
+        sz_wa.setDefaultWidget(sz_container)
+        menu.addAction(sz_wa)
 
         def _sync_and_apply(val, block_widget):
             block_widget.blockSignals(True)

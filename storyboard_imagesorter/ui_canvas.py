@@ -17,9 +17,8 @@
 # ui_canvas.py
 # This module provides UI components for the application's canvas area.
 
-import os
 from PyQt6.QtWidgets import (
-    QWidget, QScrollArea, QLabel, QVBoxLayout, QLayout, QRubberBand,
+    QWidget, QScrollArea, QLabel, QVBoxLayout, QLayout, QRubberBand, QApplication,
 )
 from PyQt6.QtGui import QPainter, QColor, QPen, QCursor
 from PyQt6.QtCore import (
@@ -28,8 +27,7 @@ from PyQt6.QtCore import (
 
 import constants
 
-# All imports are placed at the top to follow PEP8 and professional standards.
-from commands import MoveToStashCommand, MoveFromStashCommand, MoveCardsCommand
+from commands import MoveFromStashCommand, MoveCardsCommand
 
 MIME_INTERNAL = constants.MIME_INTERNAL
 
@@ -187,7 +185,7 @@ class IndicatorOverlay(QWidget):
         top_color = QColor(45, 111, 171, alpha_active) if top_active else QColor(45, 111, 171, alpha)
         painter.fillRect(QRect(0, top_y, w, zone_h), top_color)
         painter.setPen(QColor(77, 143, 204, 200 if top_active else 120))
-        painter.drawText(QRect(0, top_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▲")
+        painter.drawText(QRect(0, top_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▲ Hold Shift for fast scroll")
 
         # Bottom zone
         bot_y = scroll_y + vp_h - zone_h
@@ -195,7 +193,7 @@ class IndicatorOverlay(QWidget):
         bot_color = QColor(45, 111, 171, alpha_active) if bot_active else QColor(45, 111, 171, alpha)
         painter.fillRect(QRect(0, bot_y, w, zone_h), bot_color)
         painter.setPen(QColor(77, 143, 204, 200 if bot_active else 120))
-        painter.drawText(QRect(0, bot_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▼")
+        painter.drawText(QRect(0, bot_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▼ Hold Shift for fast scroll")
 
 class LassoContainer(QWidget):
     """Main canvas widget supporting lasso selection and internal drag-drop reordering."""
@@ -235,9 +233,13 @@ class LassoContainer(QWidget):
     def _do_scroll(self):
         """Executes one scroll step in the active direction."""
         scroll_area = self._get_scroll_area()
-        if scroll_area:
-            bar = scroll_area.verticalScrollBar()
-            bar.setValue(bar.value() + self._scroll_direction * 12)
+        if not scroll_area:
+            return
+        mods = QApplication.keyboardModifiers()
+        fast = bool(mods & Qt.KeyboardModifier.ShiftModifier)
+        step = 60 if fast else 12
+        bar = scroll_area.verticalScrollBar()
+        bar.setValue(bar.value() + self._scroll_direction * step)
 
     def _update_scroll_zones(self):
         """Checks mouse position against viewport edges and starts/stops scrolling."""

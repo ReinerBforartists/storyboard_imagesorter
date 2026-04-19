@@ -175,25 +175,30 @@ class IndicatorOverlay(QWidget):
         zone_h = 80
         vp_h = vp.height()
         w = self.width()
-        scroll_y = scroll_area.verticalScrollBar().value()
+        bar = scroll_area.verticalScrollBar()
+        scroll_y = bar.value()
         alpha = self.sorter.settings_manager.get("scroll_zone_alpha", 80)
         alpha_active = min(255, int(alpha * 1.75))
 
-        # Top zone
-        top_y = scroll_y
-        top_active = mouse_vp.y() < zone_h
-        top_color = QColor(45, 111, 171, alpha_active) if top_active else QColor(45, 111, 171, alpha)
-        painter.fillRect(QRect(0, top_y, w, zone_h), top_color)
-        painter.setPen(QColor(77, 143, 204, 200 if top_active else 120))
-        painter.drawText(QRect(0, top_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▲ Hold Shift for fast scroll")
+        # Only draw the zone the mouse is currently hovering over
+        if mouse_vp.y() < zone_h:
+            top_y = scroll_y
+            can_scroll = scroll_y > 0
+            color = QColor(45, 111, 171, alpha_active) if can_scroll else QColor(60, 60, 60, alpha)
+            text_color = QColor(77, 143, 204, 200) if can_scroll else QColor(100, 100, 100, 120)
+            painter.fillRect(QRect(0, top_y, w, zone_h), color)
+            painter.setPen(text_color)
+            painter.drawText(QRect(0, top_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▲  Hold Shift for fast scroll")
 
-        # Bottom zone
-        bot_y = scroll_y + vp_h - zone_h
-        bot_active = mouse_vp.y() > vp_h - zone_h
-        bot_color = QColor(45, 111, 171, alpha_active) if bot_active else QColor(45, 111, 171, alpha)
-        painter.fillRect(QRect(0, bot_y, w, zone_h), bot_color)
-        painter.setPen(QColor(77, 143, 204, 200 if bot_active else 120))
-        painter.drawText(QRect(0, bot_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▼ Hold Shift for fast scroll")
+        elif mouse_vp.y() > vp_h - zone_h:
+            bot_y = scroll_y + vp_h - zone_h
+            can_scroll = scroll_y < bar.maximum()
+            color = QColor(45, 111, 171, alpha_active) if can_scroll else QColor(60, 60, 60, alpha)
+            text_color = QColor(77, 143, 204, 200) if can_scroll else QColor(100, 100, 100, 120)
+            painter.fillRect(QRect(0, bot_y, w, zone_h), color)
+            painter.setPen(text_color)
+            painter.drawText(QRect(0, bot_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▼  Hold Shift for fast scroll")
+
 
 class LassoContainer(QWidget):
     """Main canvas widget supporting lasso selection and internal drag-drop reordering."""

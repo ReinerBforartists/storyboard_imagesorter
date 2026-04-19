@@ -21,7 +21,7 @@ import os
 from PyQt6.QtWidgets import (
     QWidget, QScrollArea, QLabel, QVBoxLayout, QLayout, QRubberBand,
 )
-from PyQt6.QtGui import QPainter, QColor, QPen
+from PyQt6.QtGui import QPainter, QColor, QPen, QCursor
 from PyQt6.QtCore import (
     Qt, QPoint, QRect, QSize, pyqtSignal, QTimer
 )
@@ -147,6 +147,8 @@ class IndicatorOverlay(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Draw drop position indicators
         indicator_color = QColor("#e8872a")
         bar_width = 4
         spacing = self.sorter.current_spacing
@@ -158,15 +160,40 @@ class IndicatorOverlay(QWidget):
             card_rect = card.geometry()
             if card._drop_indicator == 'left':
                 x = card_rect.left() - (spacing / 2) - (bar_width / 2)
-                y = card_rect.top()
-                height = card_rect.height()
             else:
-                # Draw indicator on the right side or in the gap area
                 x = card_rect.right() + (spacing / 2) - (bar_width / 2)
-                y = card_rect.top()
-                height = card_rect.height()
+            painter.fillRect(QRect(int(x), card_rect.top(), bar_width, card_rect.height()), indicator_color)
 
-            painter.fillRect(QRect(int(x), int(y), bar_width, height), indicator_color)
+        # Draw scroll zones when drag is active
+        if not self.container._is_internal_drag:
+            return
+
+        scroll_area = self.container._get_scroll_area()
+        if not scroll_area:
+            return
+
+        vp = scroll_area.viewport()
+        mouse_vp = vp.mapFromGlobal(QCursor.pos())
+        zone_h = 80
+        vp_h = vp.height()
+        w = self.width()
+        scroll_y = scroll_area.verticalScrollBar().value()
+
+        # Top zone — offset by scroll position so it stays at the visible top edge
+        top_y = scroll_y
+        top_active = mouse_vp.y() < zone_h
+        top_color = QColor(45, 111, 171, 140) if top_active else QColor(45, 111, 171, 60)
+        painter.fillRect(QRect(0, top_y, w, zone_h), top_color)
+        painter.setPen(QColor(77, 143, 204, 200 if top_active else 120))
+        painter.drawText(QRect(0, top_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▲")
+
+        # Bottom zone — offset by scroll position so it stays at the visible bottom edge
+        bot_y = scroll_y + vp_h - zone_h
+        bot_active = mouse_vp.y() > vp_h - zone_h
+        bot_color = QColor(45, 111, 171, 140) if bot_active else QColor(45, 111, 171, 60)
+        painter.fillRect(QRect(0, bot_y, w, zone_h), bot_color)
+        painter.setPen(QColor(77, 143, 204, 200 if bot_active else 120))
+        painter.drawText(QRect(0, bot_y, w, zone_h), Qt.AlignmentFlag.AlignCenter, "▼")
 
 class LassoContainer(QWidget):
     """Main canvas widget supporting lasso selection and internal drag-drop reordering."""
@@ -185,6 +212,11 @@ class LassoContainer(QWidget):
         self._is_internal_drag = False
         self._last_drag_target = (None, None)  # (card, indicator) — skip repaint if unchanged
 
+        self._scroll_timer = QTimer()
+        self._scroll_timer.setInterval(20)
+        self._scroll_timer.timeout.connect(self._do_scroll)
+        self._scroll_direction = 0
+
     def resizeEvent(self, e):
         super().resizeEvent(e)
         self.overlay.resize(self.size())
@@ -196,6 +228,45 @@ class LassoContainer(QWidget):
             c._drag_over = False
             c._drop_indicator = None
             c._apply_style()
+        self.overlay.update()
+
+    def _do_scroll(self):
+        """Executes one scroll step in the active direction."""
+        scroll_area = self._get_scroll_area()
+        if scroll_area:
+            bar = scroll_area.verticalScrollBar()
+            bar.setValue(bar.value() + self._scroll_direction * 12)
+
+    def _update_scroll_zones(self):
+        """Checks mouse position against viewport edges and starts/stops scrolling."""
+        scroll_area = self._get_scroll_area()
+        if not scroll_area:
+            self._scroll_direction = 0
+            self._scroll_timer.stop()
+            self.unsetCursor()
+            self.overlay.update()
+            return
+
+        vp = scroll_area.viewport()
+        mouse_vp = vp.mapFromGlobal(QCursor.pos())
+        zone = 80
+        vp_h = vp.height()
+
+        if mouse_vp.y() < zone:
+            self._scroll_direction = -1
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+            if not self._scroll_timer.isActive():
+                self._scroll_timer.start()
+        elif mouse_vp.y() > vp_h - zone:
+            self._scroll_direction = 1
+            self.setCursor(Qt.CursorShape.SizeVerCursor)
+            if not self._scroll_timer.isActive():
+                self._scroll_timer.start()
+        else:
+            self._scroll_direction = 0
+            self._scroll_timer.stop()
+            self.unsetCursor()
+
         self.overlay.update()
 
     def _get_scroll_area(self):
@@ -233,6 +304,7 @@ class LassoContainer(QWidget):
     def dragEnterEvent(self, e):
         """Handles entering the canvas with a drag."""
         if e.mimeData().hasFormat(MIME_INTERNAL):
+            self._update_scroll_zones()
             e.acceptProposedAction()
             self._is_internal_drag = True
         else:
@@ -246,6 +318,8 @@ class LassoContainer(QWidget):
     def dragMoveEvent(self, e):
         """Handles the movement of an internal drag to update visual indicators."""
         if e.mimeData().hasFormat(MIME_INTERNAL):
+            self._update_scroll_zones()
+
             pos = e.position().toPoint()
             tgt, indicator = self._find_target(pos)
 
@@ -254,7 +328,7 @@ class LassoContainer(QWidget):
                 e.acceptProposedAction()
                 return
 
-            # Reset only the single previously highlighted card — no full iteration
+            # Reset only the single previously highlighted card
             prev_tgt, _ = self._last_drag_target
             if prev_tgt is not None:
                 prev_tgt._drag_over = False
@@ -281,11 +355,18 @@ class LassoContainer(QWidget):
 
     def dragLeaveEvent(self, e):
         """Handles leaving the canvas area."""
-        if self._is_internal_drag:
+        scroll_area = self._get_scroll_area()
+        vp = scroll_area.viewport() if scroll_area else None
+        in_viewport = vp and vp.rect().contains(vp.mapFromGlobal(QCursor.pos()))
+
+        if not in_viewport:
+            self._scroll_timer.stop()
+            self._scroll_direction = 0
+
+        if self._is_internal_drag and not in_viewport:
             self._clear_drop_state()
             self._is_internal_drag = False
-        else:
-            scroll_area = self._get_scroll_area()
+        elif not self._is_internal_drag:
             if scroll_area:
                 scroll_area.dragLeaveEvent(e)
             else:
@@ -293,6 +374,8 @@ class LassoContainer(QWidget):
 
     def dropEvent(self, e):
         """Handles the actual dropping of images for reordering or stashing."""
+        self._scroll_timer.stop()
+        self._scroll_direction = 0
         if e.mimeData().hasFormat(MIME_INTERNAL):
             src_data = e.mimeData().data(MIME_INTERNAL).data().decode()
             src_paths = [p for p in src_data.split(",") if p]

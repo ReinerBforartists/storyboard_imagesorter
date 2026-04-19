@@ -235,6 +235,14 @@ class LassoContainer(QWidget):
             c._apply_style()
         self.overlay.update()
 
+    def _reset_drag_state(self):
+        """Resets all drag-related state — called on stale drag detection."""
+        self._is_internal_drag = False
+        self._scroll_timer.stop()
+        self._scroll_direction = 0
+        self.unsetCursor()
+        self._clear_drop_state()
+
     def _do_scroll(self):
         """Executes one scroll step in the active direction."""
         scroll_area = self._get_scroll_area()
@@ -313,10 +321,15 @@ class LassoContainer(QWidget):
     def dragEnterEvent(self, e):
         """Handles entering the canvas with a drag."""
         if e.mimeData().hasFormat(MIME_INTERNAL):
+            self._is_internal_drag = True
             self._update_scroll_zones()
             e.acceptProposedAction()
-            self._is_internal_drag = True
         else:
+            # Reset stale drag state on any new external drag enter
+            self._is_internal_drag = False
+            self._scroll_timer.stop()
+            self._scroll_direction = 0
+            self.overlay.update()
             scroll_area = self._get_scroll_area()
             if scroll_area:
                 scroll_area.dragEnterEvent(e)
@@ -369,21 +382,17 @@ class LassoContainer(QWidget):
         in_viewport = vp and vp.rect().contains(vp.mapFromGlobal(QCursor.pos()))
 
         if not in_viewport:
-            self._scroll_timer.stop()
-            self._scroll_direction = 0
-
-        if self._is_internal_drag and not in_viewport:
-            self._clear_drop_state()
-            self._is_internal_drag = False
-        elif not self._is_internal_drag:
-            if scroll_area:
-                scroll_area.dragLeaveEvent(e)
+            if self._is_internal_drag:
+                self._reset_drag_state()
             else:
-                e.ignore()
+                if scroll_area:
+                    scroll_area.dragLeaveEvent(e)
+                else:
+                    e.ignore()
 
     def dropEvent(self, e):
         """Handles the actual dropping of images for reordering or stashing."""
-        self._scroll_timer.stop()
+        self._reset_drag_state()
         self._scroll_direction = 0
         if e.mimeData().hasFormat(MIME_INTERNAL):
             src_data = e.mimeData().data(MIME_INTERNAL).data().decode()
@@ -448,8 +457,11 @@ class LassoContainer(QWidget):
 
     def mousePressEvent(self, e):
         """Handles lasso selection start and ensures focus."""
-        # Ensure the canvas gets focus so shortcuts work
         self.setFocus()
+
+        # Reset any stale drag state (e.g. after Alt+Tab or screenshot tool)
+        if self._is_internal_drag:
+            self._reset_drag_state()
 
         is_card = False
         for card in self.sorter.cards:

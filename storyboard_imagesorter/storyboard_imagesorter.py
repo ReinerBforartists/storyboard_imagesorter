@@ -156,44 +156,15 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     # ── Shortcuts ─────────────────────────────────────────────────────────────
 
     def _setup_shortcuts(self):
-        """Registers global shortcuts directly to the window for maximum reliability."""
-
-        # Helper to register a shortcut
+        """Undo/Redo as QShortcut — everything else is handled centrally in eventFilter."""
         def register_sc(seq, callback):
             shortcut = QShortcut(QKeySequence(seq), self)
             shortcut.activated.connect(callback)
             return shortcut
 
-        # Standard Shortcuts
         register_sc("Ctrl+Z", self.undo_stack.undo)
         register_sc("Ctrl+Y", self.undo_stack.redo)
         register_sc("Ctrl+Shift+Z", self.undo_stack.redo)
-        register_sc("Ctrl+Shift+C", self._clear_selected_colors)
-        register_sc("Tab", self._toggle_stash)
-        register_sc("B", self._toggle_sidebar)
-
-        # Selection Management (The Fix)
-        register_sc("Ctrl+A", self._select_all)
-        register_sc("Ctrl+D", self._deselect_all)
-
-        # Zoom in out
-        register_sc("Num++", self._zoom_in)
-        register_sc("Num+-", self._zoom_out)
-
-        # Delete key
-        register_sc("Delete", self._remove_selected)
-
-        # Arrow buttons sorting
-        register_sc("Ctrl+Left", lambda: self._move_selection_absolute("start"))
-        register_sc("Ctrl+Up", lambda: self._move_selection_absolute("start"))
-        register_sc("Ctrl+Right", lambda: self._move_selection_absolute("end"))
-        register_sc("Ctrl+Down", lambda: self._move_selection_absolute("end"))
-
-        # Jump to start or end of image series
-        register_sc("Home", lambda: self.scroll.verticalScrollBar().setValue(0))
-        register_sc("End", lambda: self.scroll.verticalScrollBar().setValue(
-            self.scroll.verticalScrollBar().maximum()
-        ))
 
     # ── Sidebar / stash toggles ───────────────────────────────────────────────
 
@@ -292,28 +263,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     def wheelEvent(self, e):
         # Standard scrolling only (Zooming moved to Numpad keys to avoid conflicts)
         super().wheelEvent(e)
-
-    def keyPressEvent(self, event):
-        """Global keyboard handler for the entire application."""
-        key = event.key()
-        mods = event.modifiers()
-        is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
-
-        # Handle only simple single-step moves (arrow keys without Ctrl).
-        # All Ctrl-based moves and Delete are handled by QShortcuts
-        # to avoid double-triggering and ensure focus reliability.
-        if not is_ctrl:
-            if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
-                self._move_selected(-1)
-                event.accept()
-                return
-            elif key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
-                self._move_selected(1)
-                event.accept()
-                return
-
-        # Pass all other events to the base class implementation.
-        super().keyPressEvent(event)
 
     def _show_about(self):
         for child in self.findChildren(ui_dialogs.AboutDialog):
@@ -674,9 +623,113 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self.stash_zone.set_active(False)
 
     def eventFilter(self, obj, event):
-        """Simplified filter: only handles stash deactivation."""
         if event.type() == QEvent.Type.MouseButtonPress:
             self.stash_zone.set_active(False)
+
+        if event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            mods = event.modifiers()
+            is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
+            is_shift = bool(mods & Qt.KeyboardModifier.ShiftModifier)
+            in_stash = self.stash_zone.container.hasFocus()
+
+            # Global hotkeys (always active)
+            if is_ctrl and key == Qt.Key.Key_Z:
+                self.undo_stack.undo()
+                return True
+            if is_ctrl and key == Qt.Key.Key_Y:
+                self.undo_stack.redo()
+                return True
+            if is_ctrl and is_shift and key == Qt.Key.Key_Z:
+                self.undo_stack.redo()
+                return True
+            if key == Qt.Key.Key_Tab:
+                self._toggle_stash()
+                return True
+            if key == Qt.Key.Key_B and not is_ctrl:
+                self._toggle_sidebar()
+                return True
+            if is_ctrl and is_shift and key == Qt.Key.Key_C:
+                self._clear_selected_colors()
+                return True
+            if key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal) and not is_ctrl:
+                self._zoom_in()
+                return True
+            if key == Qt.Key.Key_Minus and not is_ctrl:
+                self._zoom_out()
+                return True
+
+            # Stash hotkeys
+            if in_stash:
+                if key == Qt.Key.Key_Home:
+                    self.stash_zone.scroll.horizontalScrollBar().setValue(0)
+                    return True
+                if key == Qt.Key.Key_End:
+                    self.stash_zone.scroll.horizontalScrollBar().setValue(
+                        self.stash_zone.scroll.horizontalScrollBar().maximum()
+                    )
+                    return True
+                if key == Qt.Key.Key_PageUp:
+                    self.stash_zone.scroll.horizontalScrollBar().setValue(
+                        self.stash_zone.scroll.horizontalScrollBar().value() - 500
+                    )
+                    return True
+                if key == Qt.Key.Key_PageDown:
+                    self.stash_zone.scroll.horizontalScrollBar().setValue(
+                        self.stash_zone.scroll.horizontalScrollBar().value() + 500
+                    )
+                    return True
+                if is_ctrl and key == Qt.Key.Key_A:
+                    self.stash_zone.container._select_all_stash()
+                    return True
+                if is_ctrl and key == Qt.Key.Key_D:
+                    self.stash_zone.container._deselect_all_stash()
+                    return True
+                if key == Qt.Key.Key_Delete:
+                    sel = [c.path for c in self.stash_zone._cards if c._selected]
+                    if sel:
+                        self.undo_stack.push(
+                            commands.RemoveFromStashCommand(self.stash_zone, sel)
+                        )
+                    return True
+
+            # Main area hotkeys
+            else:
+                if key == Qt.Key.Key_Home:
+                    self.scroll.verticalScrollBar().setValue(0)
+                    return True
+                if key == Qt.Key.Key_End:
+                    self.scroll.verticalScrollBar().setValue(
+                        self.scroll.verticalScrollBar().maximum()
+                    )
+                    return True
+                if is_ctrl and key == Qt.Key.Key_A:
+                    self._select_all()
+                    return True
+                if is_ctrl and key == Qt.Key.Key_D:
+                    self._deselect_all()
+                    return True
+                if key == Qt.Key.Key_Delete:
+                    self._remove_selected()
+                    return True
+                if key == Qt.Key.Key_Space:
+                    self._open_lightbox()
+                    return True
+                if not is_ctrl:
+                    if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
+                        self._move_selected(-1)
+                        return True
+                    if key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
+                        self._move_selected(1)
+                        return True
+                if is_ctrl:
+                    if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
+                        self._move_selection_absolute("start")
+                        return True
+                    if key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
+                        self._move_selection_absolute("end")
+                        return True
+
         return super().eventFilter(obj, event)
 
     def _move_selected(self, direction):

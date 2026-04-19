@@ -126,56 +126,6 @@ class StashContainer(QWidget):
         # FIX: Always update the label after a selection change (lasso or click in empty space)
         self.stash_zone._update_label()
 
-    def keyPressEvent(self, e):
-        """Handles Ctrl+A, Ctrl+D, and Delete for the stash container."""
-        if e.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            if e.key() == Qt.Key.Key_A:
-                self._select_all_stash()
-                e.accept()
-                return
-            if e.key() == Qt.Key.Key_D:
-                self._deselect_all_stash()
-                e.accept()
-                return
-
-        if e.key() == Qt.Key.Key_Delete:
-            sel = [c.path for c in self.stash_zone._cards if c._selected]
-            if sel:
-                self.stash_zone.sorter.undo_stack.push(
-                    RemoveFromStashCommand(self.stash_zone, sel)
-                )
-            e.accept()
-            return
-
-        # # Home and End key for fast scrolling
-        # if e.key() == Qt.Key.Key_Home:
-        #     self.stash_zone.scroll.horizontalScrollBar().setValue(0)
-        #     e.accept()
-        #     return
-        # if e.key() == Qt.Key.Key_End:
-        #     self.stash_zone.scroll.horizontalScrollBar().setValue(
-        #         self.stash_zone.scroll.horizontalScrollBar().maximum()
-        #     )
-        #     e.accept()
-        #     return
-
-        # Page up, Page down for fast
-        if e.key() == Qt.Key.Key_PageUp:
-            self.stash_zone.scroll.horizontalScrollBar().setValue(
-                self.stash_zone.scroll.horizontalScrollBar().value() - 500
-            )
-            e.accept()
-            return
-        if e.key() == Qt.Key.Key_PageDown:
-            self.stash_zone.scroll.horizontalScrollBar().setValue(
-                self.stash_zone.scroll.horizontalScrollBar().value() + 500
-            )
-            e.accept()
-            return
-
-        super().keyPressEvent(e)
-
-
     def dragEnterEvent(self, e):
         if (e.mimeData().hasFormat(MIME_INTERNAL) or
                 e.mimeData().hasFormat(MIME_STASH)):

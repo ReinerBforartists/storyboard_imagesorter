@@ -658,6 +658,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             if key == Qt.Key.Key_Minus and not is_ctrl:
                 self._zoom_out()
                 return True
+            if key == Qt.Key.Key_F:
+                self._scroll_to_selected()
+                return True
 
             # Stash hotkeys
             if in_stash:
@@ -806,6 +809,8 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         menu.addAction("🕓 Newest First", lambda: self._sort_by('date_desc'))
         menu.addSeparator()
         menu.addAction("🔄 Reverse Order", lambda: self._sort_by('reverse'))
+        menu.addSeparator()
+        menu.addAction("🎯 Focus selected\tF", self._scroll_to_selected)
 
         btn = self.sender()
         if btn:
@@ -851,6 +856,14 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self.setWindowTitle(
             f"Storyboard Imagesorter — {n} image{'s' if n != 1 else ''}" if n else "Storyboard Imagesorter"
         )
+
+    # ── Focus on seleced ──────────────────────────────────────────────────────
+    def _scroll_to_selected(self):
+        """Scrolls the view to the first selected card."""
+        for card in self.cards:
+            if card._selected:
+                self.scroll.ensureWidgetVisible(card)
+                break
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 

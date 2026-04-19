@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QTableWidget, QHeaderView, QDialogButtonBox, QSpinBox,
     QPushButton, QTableWidgetItem, QFrame, QWidget, QCheckBox,
-    QComboBox, QStackedWidget
+    QComboBox, QStackedWidget, QScrollArea
 )
 from PyQt6.QtGui import (
     QPainter, QColor, QFont, QImage, QPixmap
@@ -389,7 +389,7 @@ class AboutDialog(QDialog):
         # Copyright section
         copyright_lbl = QLabel("Copyright © 2026 by Reiner Prokein (Haizy Tiles)")
         copyright_lbl.setFont(QFont("Arial", 9))
-        copyright_lbl.setStyleSheet("color: #666;")
+        copyright_lbl.setStyleSheet("color: #999;")
         copyright_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(copyright_lbl)
 
@@ -407,35 +407,44 @@ class AboutDialog(QDialog):
         lay.addWidget(hotkey_title)
 
         hotkeys = [
-            ("Space", "Open/Close Lightbox"),
+            ("Space", "Open / Close Lightbox"),
             ("Escape", "Close Lightbox"),
             ("← → (in Lightbox)", "Previous / Next image"),
-            ("Plus / Minus", "Zoom in / out"),
+            ("+ / -", "Zoom in / out"),
             ("Ctrl + A", "Select all"),
             ("Ctrl + D", "Deselect all"),
             ("Ctrl + Z", "Undo"),
-            ("Ctrl + Y / Ctrl+Shift+Z", "Redo"),
+            ("Ctrl + Y / Ctrl + Shift + Z", "Redo"),
             ("Ctrl + Shift + C", "Clear colors from selected"),
             ("Delete", "Remove selected images"),
             ("← → (Main View)", "Move selected images"),
             ("Ctrl + ← / →", "Move selection to Start / End"),
-            ("Tab", "Toggle Stash open/closed"),
-            ("B", "Toggle Sidebar open/closed"),
-            ("Shift + Click", "Add to selection"),
+            ("F", "Focus view on first selected image"),
+            ("Home", "Jump to first image"),
+            ("End", "Jump to last image"),
+            ("Page Up / Page Down", "Scroll through images"),
+            ("Tab", "Toggle Stash open / closed"),
+            ("B", "Toggle Sidebar open / closed"),
+            ("Shift + Click", "Extend selection"),
             ("Ctrl + Click", "Toggle single image selection"),
-            ("Mouse Drag", "(Rectangle selection)"),
+            ("Mouse Drag (empty area)", "Rectangle / lasso selection"),
             ("Drag Image(s)", "Reorder via Drag & Drop"),
             ("Double-Click", "Open in system viewer"),
             ("Drag → Stash", "Move to stash"),
             ("Double-Click Stash", "Return image to main view"),
             ("Shift + Scroll", "Fast scroll through images"),
             ("Right-Click (Color)", "Select cards by color"),
-            ("Shift + Right-Click", "Add color to selection"),
-            ("Pos 1", "Set view to first image"),
-            ("Home", "Set view to last image"),
-            ("Page Up", "Scroll through the list"),
-            ("Page Down", "Scroll through the list"),
+            ("Shift + Right-Click (Color)", "Add color selection"),
         ]
+
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setStyleSheet(
+            "QScrollArea{border:none;background:transparent;}"
+            "QScrollBar:vertical{background:#181818;width:6px;}"
+            "QScrollBar::handle:vertical{background:#333;border-radius:3px;}"
+            "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}"
+        )
 
         grid_widget = QWidget()
         grid_widget.setStyleSheet("background:#252525;border-radius:6px;")
@@ -447,14 +456,16 @@ class AboutDialog(QDialog):
             row = QHBoxLayout()
             row.setSpacing(8)
             k_lbl = QLabel(key)
-            k_lbl.setStyleSheet("color:#e0e0e0;font-family:monospace;font-size:11px;min-width:150px;")
+            k_lbl.setStyleSheet("color:#e0e0e0;font-family:monospace;font-size:11px;min-width:160px;")
             d_lbl = QLabel(desc_text)
             d_lbl.setStyleSheet("color:#bbb;font-size:11px;")
             row.addWidget(k_lbl)
             row.addWidget(d_lbl, 1)
             grid.addLayout(row)
 
-        lay.addWidget(grid_widget)
+        scroll_area.setWidget(grid_widget)
+        scroll_area.setFixedHeight(280)
+        lay.addWidget(scroll_area)
 
         # Bottom button row
         btn_row = QHBoxLayout()

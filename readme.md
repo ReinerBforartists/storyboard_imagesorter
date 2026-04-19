@@ -56,6 +56,7 @@ Need to fix a drawing? Double-click an image to open it in your preferred editor
 | `Ctrl + Z` / `Ctrl + Y` | Undo / Redo last action |
 | `Ctrl + A` / `Ctrl + D` | Select All / Deselect All |
 | `Delete` | Remove selection from the sequence |
+| `F` | Scrolls the view to the first selected card |
 | `Tab` | Hide/Show the Stash at the bottom |
 | `B` | Hide/Show the Color Sidebar |
 | `←` / `→` (Arrows) | Move selection left or right |
@@ -65,11 +66,10 @@ Need to fix a drawing? Double-click an image to open it in your preferred editor
 | `Shift + Scroll` | **Fast scroll** through large sequences |
 | `Right-Click (Color)` | Select all cards with this color |
 | `Shift + Right-Click` | Add color to current selection |
-| `Pos 1` | Set view to first image |
-| `Home` | Set view to last image |
+| `Home / Pos 1` | Set view to first image |
+| `End / Ende` | Set view to last image |
 | `Page Up` | Scroll through the list |
 | `Page Down` | Scroll through the list |
-
 
 
 ### Lightbox Mode (Full-screen)

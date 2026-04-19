@@ -682,6 +682,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                         self.stash_zone.scroll.horizontalScrollBar().value() + 500
                     )
                     return True
+                if key == Qt.Key.Key_F:
+                    self._scroll_to_selected()
+                    return True
                 if is_ctrl and key == Qt.Key.Key_A:
                     self.stash_zone.container._select_all_stash()
                     return True
@@ -717,6 +720,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                     return True
                 if key == Qt.Key.Key_Space:
                     self._open_lightbox()
+                    return True
+                if key == Qt.Key.Key_F:
+                    self._scroll_to_selected()
                     return True
                 if not is_ctrl:
                     if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
@@ -857,13 +863,18 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             f"Storyboard Imagesorter — {n} image{'s' if n != 1 else ''}" if n else "Storyboard Imagesorter"
         )
 
-    # ── Focus on seleced ──────────────────────────────────────────────────────
     def _scroll_to_selected(self):
-        """Scrolls the view to the first selected card."""
-        for card in self.cards:
-            if card._selected:
-                self.scroll.ensureWidgetVisible(card)
-                break
+        """Scrolls the view to the first selected card (main view or stash)."""
+        if self.stash_zone.container.hasFocus():
+            for card in self.stash_zone._cards:
+                if card._selected:
+                    self.stash_zone.scroll.ensureWidgetVisible(card)
+                    break
+        else:
+            for card in self.cards:
+                if card._selected:
+                    self.scroll.ensureWidgetVisible(card)
+                    break
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 

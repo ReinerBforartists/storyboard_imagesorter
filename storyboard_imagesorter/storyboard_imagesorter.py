@@ -622,6 +622,11 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             self.stash_zone.set_active(False)
 
         if event.type() == QEvent.Type.KeyPress:
+            # Check if a modal dialog (like Lightbox) is active.
+            # If so, we should let the dialog handle all keys and avoid interference.
+            if QApplication.activeModalWidget() is not None:
+                return False
+
             key = event.key()
             mods = event.modifiers()
             is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)

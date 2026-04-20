@@ -540,7 +540,8 @@ class Lightbox(QDialog):
 
         path = self.cards[self.index].path
         img = QImage(path)
-        if img.isNull():
+        # Safety check for race conditions during direct disk access in paint event
+        if img.isNull() or img.width() == 0 or img.height() == 0:
             p.setPen(QColor("#aaa"))
             p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Cannot load image")
             return

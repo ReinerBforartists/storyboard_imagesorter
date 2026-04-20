@@ -384,7 +384,7 @@ class ToolbarMixin:
         ar_cb.setCheckable(True)
         initial_ar = self.settings_manager.get("auto_reload", True)
         ar_cb.setChecked(initial_ar)
-        # Initiales Aussehen setzen OHNE Signal-Trigger
+        # Initial look without trigger
         status_icon = "✓" if initial_ar else ""
         ar_cb.setText(f"↻  Auto-reload changed images {status_icon}")
         ar_cb.setStyleSheet(_ss_active if initial_ar else _ss_inactive)
@@ -439,6 +439,38 @@ class ToolbarMixin:
         label_wa.setDefaultWidget(label_container)
         menu.addAction(label_wa)
 
+        # --- UNDO LIMIT SECTION ---
+        undo_wa = QWidgetAction(menu)
+        undo_container = QWidget()
+        undo_container.setStyleSheet("background:#252525; border:1px solid #383838; border-radius:6px;")
+        undo_row = QHBoxLayout(undo_container)
+        undo_row.setContentsMargins(12, 6, 12, 6)
+        undo_row.setSpacing(8)
+
+        undo_lbl = QLabel("Undo limit")
+        undo_lbl.setStyleSheet("font-size:11px;color:#bbb;")
+        undo_spin = QSpinBox()
+        undo_spin.setMinimumHeight(30)
+        undo_spin.setRange(5, 1000)
+        undo_spin.setValue(self.settings_manager.get("undo_limit", 50))
+        undo_spin.setFixedWidth(60)
+        undo_spin.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
+
+        def _sync_undo(val):
+            undo_spin.blockSignals(True)
+            undo_spin.setValue(val)
+            undo_spin.blockSignals(False)
+            self.settings_manager.set("undo_limit", val)
+            self._save_settings()
+            # Apply to the current stack immediately
+            self.undo_stack.setUndoLimit(val)
+
+        undo_spin.valueChanged.connect(_sync_undo)
+        undo_row.addWidget(undo_lbl)
+        undo_row.addWidget(undo_spin)
+        undo_wa.setDefaultWidget(undo_container)
+        menu.addAction(undo_wa)
+
         menu.addSeparator()
 
         menu.addAction("  Reset all settings to defaults", self._reset_settings)
@@ -475,6 +507,10 @@ class ToolbarMixin:
         self.zoom_box.setCurrentIndex(constants.ZOOM_STEPS.index(100))
         self.zoom_box.blockSignals(False)
         self.icon_size = utils_workers.zoom_to_px(100)
+
+        # Reset Undo Limit on Stack
+        new_limit = self.settings_manager.get("undo_limit", 50)
+        self.undo_stack.setUndoLimit(new_limit)
 
         for card in self.cards:
             card.update_size(self.icon_size)

@@ -55,6 +55,7 @@ class SettingsManager:
             "sidebar_visible": False,
             "stash_visible": False,
             "scroll_zone_alpha": 80,
+            "undo_limit": 50,
         }
         self.settings = {}
 

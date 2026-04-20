@@ -78,7 +78,11 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self._last_clicked: int | None = None
         self.thread_pool = QThreadPool()
         self.thread_pool.setMaxThreadCount(6)
+
+        # Initialize Undo Stack with limit from settings
+        undo_limit = self.settings_manager.get("undo_limit", 50)
         self.undo_stack = QUndoStack(self)
+        self.undo_stack.setUndoLimit(undo_limit)
 
         self._resize_timer = QTimer(singleShot=True)
         self._resize_timer.timeout.connect(self._rebuild_flow_completely)

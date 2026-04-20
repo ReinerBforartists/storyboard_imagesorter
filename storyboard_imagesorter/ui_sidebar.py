@@ -165,6 +165,8 @@ class ColorSidebar(QWidget):
 
             # Update the main application (will be saved to disk on exit)
             self.sorter.custom_color = new_color_hex
+            self.sorter.settings_manager.set("custom_color", new_color_hex)
+            self.sorter.settings_manager.request_save()
 
             self.sorter._apply_color_to_selection(new_color_hex)
             self._update_picker_style()

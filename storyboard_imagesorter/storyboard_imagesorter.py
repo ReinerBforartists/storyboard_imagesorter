@@ -112,7 +112,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     # ── Persistence ───────────────────────────────────────────────────────────
 
     def _save_settings(self):
-        """Syncs current UI state into SettingsManager and writes to disk."""
+        """Syncs current UI state into SettingsManager and requests a debounced save."""
         sm = self.settings_manager
         sm.set("last_export_dir", self.last_export_dir)
         sm.set("gap", self.current_spacing)
@@ -126,7 +126,8 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         sm.set("custom_color", self.custom_color)
         sm.set("sidebar_visible", self.sidebar.isVisible())
         sm.set("stash_visible", self.stash_zone.is_expanded())
-        sm.save()
+        # Trigger the debounced save
+        sm.request_save()
 
     def _save_last_dir(self, path):
         self.last_export_dir = path
@@ -520,7 +521,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self._lazy_timer.start(80)
 
 
-
     def _reorder_flow_widgets(self):
         """
         Smart reorder: repositions existing widgets in the layout without
@@ -883,7 +883,12 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     def closeEvent(self, event):
+        """Ensures all settings are saved to disk before exiting."""
+        # Sync UI values into the manager first
         self._save_settings()
+        # Stop timer and force immediate write
+        self.settings_manager._save_timer.stop()
+        self.settings_manager.save()
         event.accept()
 
     # ── Select by color tag ───────────────────────────────────────────────────

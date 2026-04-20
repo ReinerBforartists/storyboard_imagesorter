@@ -337,7 +337,7 @@ class ToolbarMixin:
             block_widget.setValue(val)
             block_widget.blockSignals(False)
             self.settings_manager.set("scroll_zone_alpha", val)
-            self._save_settings()
+            self.settings_manager.request_save()
 
         sz_slider.valueChanged.connect(lambda v: _sync_sz(v, sz_spin))
         sz_spin.valueChanged.connect(lambda v: _sync_sz(v, sz_slider))
@@ -353,7 +353,7 @@ class ToolbarMixin:
             self.current_spacing = val
             self.flow_layout.setSpacing(val)
             self._rebuild_flow_completely()
-            self._save_settings()
+            self.settings_manager.request_save()
 
         slider.valueChanged.connect(lambda v: _sync_and_apply(v, spin))
         spin.valueChanged.connect(lambda v: _sync_and_apply(v, slider))
@@ -391,7 +391,7 @@ class ToolbarMixin:
 
         def _toggle_ar(checked):
             self.settings_manager.set("auto_reload", checked)
-            self._save_settings()
+            self.settings_manager.request_save()
             status = "✓" if checked else ""
             ar_cb.setText(f"↻  Auto-reload changed images {status}")
             ar_cb.setStyleSheet(_ss_active if checked else _ss_inactive)
@@ -423,7 +423,7 @@ class ToolbarMixin:
 
             def _on_toggle_changed(checked: bool):
                 self.settings_manager.set(setting_key, checked)
-                self._save_settings()
+                self.settings_manager.request_save()
                 self._apply_label_settings() # Die teure Funktion wird NUR beim Klick aufgerufen
                 btn.setText(f"☑ {text}" if checked else f"☐ {text}")
                 btn.setStyleSheet(_ss_active if checked else _ss_inactive)
@@ -461,7 +461,7 @@ class ToolbarMixin:
             undo_spin.setValue(val)
             undo_spin.blockSignals(False)
             self.settings_manager.set("undo_limit", val)
-            self._save_settings()
+            self.settings_manager.request_save()
             # Apply to the current stack immediately
             self.undo_stack.setUndoLimit(val)
 
@@ -491,8 +491,10 @@ class ToolbarMixin:
         if reply != QMessageBox.StandardButton.Yes:
             return
 
+        # 1. Re-initialize manager (loads defaults)
         self.settings_manager = settings_manager.SettingsManager()
 
+        # 2. Sync local UI variables with new defaults
         self.current_spacing = self.settings_manager.get("gap")
         self.saved_export_prefix = self.settings_manager.get("export_prefix")
         self.saved_contact_cols = self.settings_manager.get("contact_cols")
@@ -500,6 +502,7 @@ class ToolbarMixin:
         self.saved_contact_labels = self.settings_manager.get("contact_labels")
         self.saved_contact_notes = self.settings_manager.get("contact_notes", False)
 
+        # 3. Update UI components
         self.flow_layout.setSpacing(self.current_spacing)
         self._apply_label_settings()
 
@@ -508,7 +511,7 @@ class ToolbarMixin:
         self.zoom_box.blockSignals(False)
         self.icon_size = utils_workers.zoom_to_px(100)
 
-        # Reset Undo Limit on Stack
+        # Adjust undo limit
         new_limit = self.settings_manager.get("undo_limit", 50)
         self.undo_stack.setUndoLimit(new_limit)
 
@@ -516,4 +519,8 @@ class ToolbarMixin:
             card.update_size(self.icon_size)
 
         self._rebuild_flow_completely()
-        self._save_settings()
+
+        # 4. IMPORTANT: Write the new state to disk immediately
+        self.settings_manager.save()
+
+

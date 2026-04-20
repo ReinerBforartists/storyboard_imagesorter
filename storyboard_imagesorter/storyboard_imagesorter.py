@@ -144,7 +144,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     def _apply_label_settings(self):
         show_idx = self.settings_manager.get("show_index", True)
         show_name = self.settings_manager.get("show_filename", True)
-        show_notes = self.settings_manager.get("show_notes", True)
+        show_notes = self.settings_manager.get("show_notes", False)  # default matches settings
 
         scroll_y = self.scroll.verticalScrollBar().value()
         view_height = self.scroll.viewport().height()
@@ -162,15 +162,8 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
     # ── Shortcuts ─────────────────────────────────────────────────────────────
 
     def _setup_shortcuts(self):
-        """Undo/Redo as QShortcut — everything else is handled centrally in eventFilter."""
-        def register_sc(seq, callback):
-            shortcut = QShortcut(QKeySequence(seq), self)
-            shortcut.activated.connect(callback)
-            return shortcut
-
-        register_sc("Ctrl+Z", self.undo_stack.undo)
-        register_sc("Ctrl+Y", self.undo_stack.redo)
-        register_sc("Ctrl+Shift+Z", self.undo_stack.redo)
+        # Undo/Redo are handled centrally in eventFilter — no duplicate registration needed.
+        pass
 
     # ── Sidebar / stash toggles ───────────────────────────────────────────────
 
@@ -597,7 +590,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         """Handles clicking on a card to select it and ensures the canvas gets focus."""
         mods = QApplication.keyboardModifiers()
 
-        # 1. Selection Logic
         if mods & Qt.KeyboardModifier.ShiftModifier and self._last_clicked is not None:
             lo, hi = sorted([self._last_clicked, index])
             add = bool(mods & Qt.KeyboardModifier.ControlModifier)
@@ -606,6 +598,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                     c.set_selected(True)
                 elif not add:
                     c.set_selected(False)
+            self._last_clicked = index  # update anchor after range selection
         elif mods & Qt.KeyboardModifier.ControlModifier:
             if 0 <= index < len(self.cards):
                 self.cards[index].set_selected(not self.cards[index]._selected)
@@ -617,14 +610,11 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
         self._update_count()
 
-        # 2. Focus Management (The Fix)
-        # We must ensure the LassoContainer gets focus so that subsequent
-        # key presses (like Ctrl+A / Ctrl+D) are caught by its keyPressEvent.
+        # Ensure the LassoContainer receives focus so key events (Ctrl+A etc.) are handled.
         if hasattr(self, 'container'):
             self.container.setFocus()
 
-        # 3. UI State Management
-        # Deactivate stash visual state when clicking a card in the main view
+        # Deactivate stash visual state when clicking a card in the main view.
         self.stash_zone.set_active(False)
 
     def eventFilter(self, obj, event):

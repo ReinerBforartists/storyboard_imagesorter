@@ -104,6 +104,8 @@ class ExportManager:
 
                 if base_name in new_colors:
                     color = new_colors[base_name]
+                    # Intentionally applied directly (not via ColorCommand) —
+                    # import is treated as a restore operation, not a user edit.
                     self.temp_colors[card.path] = color
                     card.set_color(color)
                     color_count += 1
@@ -212,24 +214,23 @@ class ExportManager:
 
             dest_img_path = os.path.join(folder, filenames[i])
             try:
-                # Using load_image_safely to ensure the file is stable before copying
                 img_check = utils_workers.load_image_safely(card.path)
                 if not img_check.isNull():
                     shutil.copy2(card.path, dest_img_path)
 
                     mapping_entries.append({
                         'new': filenames[i],
-                        'old': os.path.basename(card.path)
+                        'old': os.path.basename(card.path),
                     })
 
                     note_text = self.custom_notes.get(card.path, "").strip()
-                    color_hex = getattr(card, "_color", None)
+                    color_hex = self.temp_colors.get(card.path)  # authoritative source
 
                     if note_text or color_hex:
                         summary_entries.append({
                             'filename': filenames[i],
                             'note': note_text,
-                            'color': color_hex
+                            'color': color_hex,
                         })
             except Exception as e:
                 print(f"Error exporting {card.path}: {e}")

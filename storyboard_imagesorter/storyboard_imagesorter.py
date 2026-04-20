@@ -25,6 +25,7 @@ import os
 import platform
 import subprocess
 
+from PyQt6 import sip
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QFileDialog, QMessageBox, QMenu, QFrame,
 )

@@ -71,7 +71,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self.saved_contact_cols = self.settings_manager.get("contact_cols")
         self.saved_contact_thumb = self.settings_manager.get("contact_thumb")
         self.saved_contact_labels = self.settings_manager.get("contact_labels")
-        self.saved_contact_notes = self.settings_manager.get("contact_notes", False)
+        self.saved_contact_notes = self.settings_manager.get("contact_notes", True)
         self.custom_color = self.settings_manager.get("custom_color", "#ffffff")
 
         self.cards: list[ui_components.ThumbnailCard] = []

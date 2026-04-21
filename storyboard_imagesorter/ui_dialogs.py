@@ -152,7 +152,7 @@ class ContactSheetDialog(QDialog):
         init_cols=5,
         init_thumb=150,
         init_labels=True,
-        init_notes=False,
+        init_notes=True,
         init_mode="grid",
         init_per_page=24
     ):

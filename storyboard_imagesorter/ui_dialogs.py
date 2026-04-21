@@ -30,7 +30,7 @@ from PyQt6.QtGui import (
     QPainter, QColor, QFont, QImage, QPixmap
 )
 from PyQt6.QtCore import (
-    Qt, QRect
+    Qt, QRect, QTimer
 )
 
 import utils_workers
@@ -99,7 +99,14 @@ class ExportPreviewDialog(QDialog):
             "padding:4px;}"
             "QTableWidget::item{padding:3px 6px;}"
         )
-        self._populate_table(self.prefix_edit.text())
+
+        # Setup Debounce Timer to prevent lag during typing
+        self._update_timer = QTimer()
+        self._update_timer.setSingleShot(True)
+        self._update_timer.timeout.connect(self._populate_table_debounced)
+
+        # Initial population
+        self._populate_table_debounced()
         lay.addWidget(self.table)
 
         # Dialog buttons (Ok/Cancel)
@@ -115,16 +122,31 @@ class ExportPreviewDialog(QDialog):
             "QPushButton:hover{background:#383838;}"
         )
         lay.addWidget(btns)
-        self.prefix_edit.textChanged.connect(self._populate_table)
+
+        # Connect textChanged to the timer instead of directly to population
+        self.prefix_edit.textChanged.connect(self._trigger_update)
+
+    def _trigger_update(self):
+        """Starts/restarts the debounce timer."""
+        self._update_timer.start(600)  # 600ms delay after last keystroke
+
+    def _populate_table_debounced(self):
+        """Actual heavy lifting, called only when typing pauses."""
+        prefix = self.prefix_edit.text()
+        self._populate_table(prefix)
 
     def _populate_table(self, prefix):
         """Updates the table preview as the user types the prefix."""
         digits = len(str(len(self.cards)))
+        # Block signals to prevent flickering while updating items
+        self.table.blockSignals(True)
         for i, card in enumerate(self.cards):
             ext = os.path.splitext(card.path)[1]
             new_name = f"{prefix}{str(i + 1).zfill(digits)}{ext}"
+            # Use setItem only if necessary or wrap in a way that's fast
             self.table.setItem(i, 0, QTableWidgetItem(new_name))
             self.table.setItem(i, 1, QTableWidgetItem(os.path.basename(card.path)))
+        self.table.blockSignals(False)
 
     def get_prefix(self):
         """Returns the current text from the prefix input field."""
@@ -133,7 +155,6 @@ class ExportPreviewDialog(QDialog):
     def get_mapping_enabled(self):
         """Returns whether the mapping checkbox is checked."""
         return self.mapping_cb.isChecked()
-
 
 # ─── CONTACT SHEET DIALOG ─────────────────────────────────────────────────────
 
@@ -161,6 +182,11 @@ class ContactSheetDialog(QDialog):
         self.setWindowTitle("Export Settings")
         self.resize(400, 500)
         self.setStyleSheet("background:#1e1e1e;color:#d0d0d0;")
+
+        # Setup Debounce Timer for consistency across dialogs
+        self._update_timer = QTimer()
+        self._update_timer.setSingleShot(True)
+        self._update_timer.timeout.connect(self._apply_settings_debounced)
 
         lay = QVBoxLayout(self)
         lay.setSpacing(15)
@@ -285,6 +311,21 @@ class ContactSheetDialog(QDialog):
         lay.addStretch()
 
         self._toggle_mode_ui()
+
+        # Connect all inputs to the debounce trigger for consistency
+        self.prefix_edit.textChanged.connect(self._trigger_update)
+        self.cols_spin.valueChanged.connect(self._trigger_update)
+        self.per_page_spin.valueChanged.connect(self._trigger_update)
+        self.thumb_spin.valueChanged.connect(self._trigger_update)
+
+    def _trigger_update(self):
+        """Starts/restarts the debounce timer."""
+        self._update_timer.start(600)   # 600ms delay after last keystroke
+
+    def _apply_settings_debounced(self):
+        """Placeholder for debounced logic (e.g. if we added a live preview)."""
+        # Currently, we just use the getters when 'Ok' is clicked.
+        pass
 
     def _toggle_mode_ui(self):
         """Switches the visible options based on selected mode."""

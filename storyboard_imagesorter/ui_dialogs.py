@@ -276,33 +276,38 @@ class ContactSheetDialog(QDialog):
         thumb_row.addStretch()
         common_lay.addLayout(thumb_row)
 
-        # Toggles
+        # --- BUTTON CREATION (Must be done first to avoid AttributeError) ---
+        self.index_cb = QPushButton("☑  Show index number")
+        self.index_cb.setCheckable(True)
+        self.index_cb.setChecked(init_index)
+
         self.label_cb = QPushButton("☑  Show filenames")
         self.label_cb.setCheckable(True)
         self.label_cb.setChecked(init_labels)
-        self._update_toggle_style(self.label_cb, init_labels)
-        self.label_cb.toggled.connect(
-            lambda: self._update_toggle_style(self.label_cb, self.label_cb.isChecked())
-        )
-        common_lay.addWidget(self.label_cb)
 
         self.note_cb = QPushButton("☐  Show notes")
         self.note_cb.setCheckable(True)
         self.note_cb.setChecked(init_notes)
-        self._update_toggle_style(self.note_cb, init_notes)
-        self.note_cb.toggled.connect(
-            lambda: self._update_toggle_style(self.note_cb, self.note_cb.isChecked())
-        )
-        common_lay.addWidget(self.note_cb)
 
-        self.index_cb = QPushButton("☑  Show index number")
-        self.index_cb.setCheckable(True)
-        self.index_cb.setChecked(init_index)
+        # --- BUTTON STYLING & CONNECTIONS (Now safe because all buttons exist) ---
         self._update_toggle_style(self.index_cb, init_index)
+        self._update_toggle_style(self.label_cb, init_labels)
+        self._update_toggle_style(self.note_cb, init_notes)
+
         self.index_cb.toggled.connect(
             lambda: self._update_toggle_style(self.index_cb, self.index_cb.isChecked())
         )
+        self.label_cb.toggled.connect(
+            lambda: self._update_toggle_style(self.label_cb, self.label_cb.isChecked())
+        )
+        self.note_cb.toggled.connect(
+            lambda: self._update_toggle_style(self.note_cb, self.note_cb.isChecked())
+        )
+
+        # Add them to the layout in your requested order (Index on top)
         common_lay.addWidget(self.index_cb)
+        common_lay.addWidget(self.label_cb)
+        common_lay.addWidget(self.note_cb)
 
         lay.addWidget(common_group)
 

@@ -21,9 +21,18 @@
 # enabling rapid visual tagging of images within the application.
 
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QColorDialog
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QColorDialog, QFrame
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
+
+
+def _make_separator():
+    """Creates a horizontal separator line for visual grouping."""
+    sep = QFrame()
+    sep.setFrameShape(QFrame.Shape.HLine)
+    sep.setFixedHeight(1)
+    sep.setStyleSheet("background: #333; border: none; margin: 2px 0px;")
+    return sep
 
 
 class ColorSidebar(QWidget):
@@ -51,16 +60,16 @@ class ColorSidebar(QWidget):
 
         # High-contrast palette (10 colors) optimized for Dark Theme
         self.palette = [
-        "#ff0000",  # Red
-        "#00ff33",  # Green
-        "#2979FF",  # Blue
-        "#FFFF00",  # Yellow
-        "#f032e6",  # Magenta
-        "#FF9100",  # Orange
-        "#00ffff",  # Cyan
-        "#996600",  # Brown
-        "#999999",  # Grey
-        "#FFFFFF",  # White
+            "#ff0000",  # Red
+            "#00ff33",  # Green
+            "#2979FF",  # Blue
+            "#FFFF00",  # Yellow
+            "#f032e6",  # Magenta
+            "#FF9100",  # Orange
+            "#00ffff",  # Cyan
+            "#996600",  # Brown
+            "#999999",  # Grey
+            "#FFFFFF",  # White
         ]
 
         self.palette_names = [
@@ -76,7 +85,12 @@ class ColorSidebar(QWidget):
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
             btn.customContextMenuRequested.connect(lambda pos, c=color: self.sorter._select_by_color(c))
-            btn.setToolTip(f"{name}\nLeft click to apply to selected\nRight click to select cards with this color\nShift + right click to add to the current selection")
+            btn.setToolTip(
+                f"{name}\n"
+                f"Left click to apply to selected\n"
+                f"Right click to select cards with this color\n"
+                f"Shift + right click to add to the current selection"
+            )
             btn.setStyleSheet(f"""
                 QPushButton {{
                     background-color: {color};
@@ -90,18 +104,57 @@ class ColorSidebar(QWidget):
             btn.clicked.connect(lambda checked, c=color: self.sorter._apply_color_to_selection(c))
             layout.addWidget(btn)
 
-        layout.addSpacing(15)
+        # --- Separator: palette / custom color ---
+        layout.addWidget(_make_separator())
 
-        # Custom Color Picker Button
-        self.picker_btn = QPushButton("🎨")
-        self.picker_btn.setFixedSize(32, 32)
-        self.picker_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.picker_btn.setToolTip("Custom color picker  —  click to apply to selected")
-        self._update_picker_style()
-        self.picker_btn.clicked.connect(self._open_color_dialog)
-        layout.addWidget(self.picker_btn)
+        # Create a sub-layout for the custom color group to remove spacing between them
+        custom_group_layout = QVBoxLayout()
+        custom_group_layout.setSpacing(0)  # No gap between custom button and picker
+        custom_group_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Clear Colors Button (Placed below the picker)
+        # Custom Color Button
+        self.custom_color_btn = QPushButton()
+        self.custom_color_btn.setFixedSize(32, 32)
+        self.custom_color_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.custom_color_btn.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.custom_color_btn.customContextMenuRequested.connect(
+            lambda pos: self.sorter._select_by_color(self._current_custom_color)
+        )
+        self.custom_color_btn.clicked.connect(
+            lambda: self.sorter._apply_color_to_selection(self._current_custom_color)
+        )
+        self._update_custom_color_btn_style()
+        custom_group_layout.addWidget(self.custom_color_btn)
+
+        # Open Picker Button
+        self.open_picker_btn = QPushButton("🎨")
+        self.open_picker_btn.setFixedSize(32, 20)
+        self.open_picker_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.open_picker_btn.setToolTip("Open color picker to change the custom color")
+        self.open_picker_btn.setStyleSheet("""
+            QPushButton {
+                background: #2a2a2a;
+                color: white;
+                border: 1px solid #444;
+                border-radius: 3px;
+                font-size: 11px;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background: #3a3a3a;
+                border: 1px solid #4d8fcc;
+            }
+        """)
+        self.open_picker_btn.clicked.connect(self._open_color_dialog)
+        custom_group_layout.addWidget(self.open_picker_btn)
+
+        # Add the sub-layout to the main layout
+        layout.addLayout(custom_group_layout)
+
+        # --- Separator: custom color / clear ---
+        layout.addWidget(_make_separator())
+
+        # Clear Colors Button
         self.clear_btn = QPushButton("∅")
         self.clear_btn.setFixedSize(32, 32)
         self.clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -122,40 +175,30 @@ class ColorSidebar(QWidget):
         self.clear_btn.clicked.connect(self.sorter._clear_selected_colors)
         layout.addWidget(self.clear_btn)
 
-    def _update_picker_style(self):
-        """Updates the appearance of the picker button based on the active custom color."""
-        if self._current_custom_color:
-            # Show current color as background with white border
-            self.picker_btn.setStyleSheet(f"""
-                QPushButton {{
-                    background-color: {self._current_custom_color};
-                    color: white;
-                    border: 2px solid white;
-                    border-radius: 4px;
-                    font-size: 16px;
-                }}
-                QPushButton:hover {{
-                    border: 2px solid #4d8fcc;
-                }}
-            """)
-        else:
-            # Default state
-            self.picker_btn.setStyleSheet("""
-                QPushButton {
-                    background: #2a2a2a;
-                    color: white;
-                    border: 1px solid #444;
-                    border-radius: 4px;
-                    font-size: 16px;
-                }
-                QPushButton:hover {
-                    background: #3a3a3a;
-                    border: 1px solid #4d8fcc;
-                }
-            """)
+
+    def _update_custom_color_btn_style(self):
+        """Updates the appearance of the custom color button to reflect the current custom color."""
+        color = self._current_custom_color or "#ffffff"
+        self.custom_color_btn.setToolTip(
+            f"Custom: {color}\n"
+            f"Left click to apply to selected\n"
+            f"Right click to select cards with this color\n"
+            f"Shift + right click to add to the current selection"
+        )
+        self.custom_color_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {color};
+                border: 2px solid #888;
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                border: 2px solid white;
+            }}
+        """)
 
     def _open_color_dialog(self):
-        """Opens the standard system color dialog and updates visual feedback."""
+        """Opens the standard system color dialog and updates the custom color button.
+        Does NOT automatically apply the color to the current selection."""
         start_color = QColor(self._current_custom_color) if self._current_custom_color else QColor("#ffffff")
         color = QColorDialog.getColor(start_color, self, "Select Custom Color")
 
@@ -163,10 +206,9 @@ class ColorSidebar(QWidget):
             new_color_hex = color.name()
             self._current_custom_color = new_color_hex
 
-            # Update the main application (will be saved to disk on exit)
+            # Persist to settings (will be saved to disk on exit)
             self.sorter.custom_color = new_color_hex
             self.sorter.settings_manager.set("custom_color", new_color_hex)
             self.sorter.settings_manager.request_save()
 
-            self.sorter._apply_color_to_selection(new_color_hex)
-            self._update_picker_style()
+            self._update_custom_color_btn_style()

@@ -27,9 +27,9 @@ import subprocess
 
 from PyQt6 import sip
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QFileDialog, QMessageBox, QMenu, QFrame,
+    QApplication, QWidget, QFileDialog, QMessageBox, QMenu, QFrame, QTextEdit,
 )
-from PyQt6.QtGui import QShortcut, QKeySequence, QUndoStack
+from PyQt6.QtGui import QUndoStack
 from PyQt6.QtCore import (
     Qt, QPoint, QThreadPool, QTimer, QEvent,
 )
@@ -623,7 +623,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
         if event.type() == QEvent.Type.KeyPress:
             # Check if a modal dialog (like Lightbox) is active.
-            # If so, we should let the dialog handle all keys and avoid interference.
             if QApplication.activeModalWidget() is not None:
                 return False
 
@@ -632,6 +631,10 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
             is_shift = bool(mods & Qt.KeyboardModifier.ShiftModifier)
             in_stash = self.stash_zone.container.hasFocus()
+
+            # --- NEW: Check if we are currently typing in a text field ---
+            focus_widget = QApplication.focusWidget()
+            is_typing = isinstance(focus_widget, QTextEdit)
 
             # Global hotkeys (always active)
             if is_ctrl and key == Qt.Key.Key_Z:
@@ -664,6 +667,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
             # Stash hotkeys
             if in_stash:
+                # ... (Rest der Stash-Logik bleibt gleich)
                 if key == Qt.Key.Key_Home:
                     self.stash_zone.scroll.horizontalScrollBar().setValue(0)
                     return True
@@ -701,6 +705,15 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
             # Main area hotkeys
             else:
+                # --- FIXED: Spacebar logic for Lightbox ---
+                if key == Qt.Key.Key_Space and not is_typing:
+                    self._open_lightbox()
+                    return True
+
+                # If we are typing, don't intercept anything else that might interfere
+                if is_typing:
+                    return False
+
                 if key == Qt.Key.Key_Home:
                     self.scroll.verticalScrollBar().setValue(0)
                     return True
@@ -717,9 +730,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                     return True
                 if key == Qt.Key.Key_Delete:
                     self._remove_selected()
-                    return True
-                if key == Qt.Key.Key_Space:
-                    self._open_lightbox()
                     return True
                 if key == Qt.Key.Key_F:
                     self._scroll_to_selected()
@@ -740,6 +750,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                         return True
 
         return super().eventFilter(obj, event)
+
 
     def _move_selected(self, direction):
         sel = [i for i, c in enumerate(self.cards) if c._selected]

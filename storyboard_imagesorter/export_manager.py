@@ -292,6 +292,7 @@ class ExportManager:
             init_thumb=self.saved_contact_thumb,
             init_labels=self.saved_contact_labels,
             init_notes=self.saved_contact_notes,
+            init_index=self.settings_manager.get("contact_show_index", True),
             init_mode=self.settings_manager.get("contact_mode", "grid"),
             init_per_page=self.settings_manager.get("contact_images_per_page", 24)
         )
@@ -304,10 +305,12 @@ class ExportManager:
         self.saved_contact_thumb = dlg.get_thumb_size()
         self.saved_contact_labels = dlg.get_labels_enabled()
         self.saved_contact_notes = dlg.get_notes_enabled()
+        self.saved_contact_index = dlg.get_index_enabled()
 
         self.settings_manager.set("contact_export_prefix", prefix)
         self.settings_manager.set("contact_mode", dlg.get_mode())
         self.settings_manager.set("contact_images_per_page", dlg.get_per_page())
+        self.settings_manager.set("contact_show_index", dlg.get_index_enabled())
         self._save_settings()
 
         folder = QFileDialog.getExistingDirectory(self, "Select Export Folder", self.last_export_dir)
@@ -321,6 +324,7 @@ class ExportManager:
         thumb_sz = self.saved_contact_thumb
         show_lbl = self.saved_contact_labels
         show_note = self.saved_contact_notes
+        show_index = dlg.get_index_enabled()
         per_page = dlg.get_per_page()
 
         pad = 10
@@ -366,37 +370,51 @@ class ExportManager:
 
             if mode == "grid":
                 dest_path = expected_filenames[chunk_idx]
-                sheet = self._render_grid_sheet(chunk, cols, thumb_sz, show_lbl, show_note, pad, font, char_limit)
+                global_offset = chunk_idx * per_page
+                sheet = self._render_grid_sheet(chunk, cols, thumb_sz, show_lbl, show_note, show_index, pad, font, char_limit, global_offset)
             else:
                 dest_path = expected_filenames[chunk_idx]
-                sheet = self._render_list_sheet(chunk, thumb_sz, show_lbl, show_note, pad, font, font_bold, char_limit)
+                global_offset = chunk_idx * per_page
+                sheet = self._render_list_sheet(chunk, thumb_sz, show_lbl, show_note, show_index, pad, font, font_bold, char_limit, global_offset)
 
             sheet.save(dest_path)
 
         self._stop_progress()
         self.show_status(f"Exported {len(self.cards)} images in {total_pages} sheet(s)")
 
-    def _render_grid_sheet(self, chunk, cols, thumb_sz, show_lbl, show_note, pad, font, char_limit):
+    def _render_grid_sheet(self, chunk, cols, thumb_sz, show_lbl, show_note, show_index, pad, font, char_limit, global_offset=0):
         """Renders one page of a grid-layout contact sheet and returns a QImage."""
         num_cards = len(chunk)
         rows = math.ceil(num_cards / cols)
+        fm = QFontMetrics(font)
         row_heights = []
 
         for r in range(rows):
             row_cards = chunk[r * cols: (r + 1) * cols]
-            max_text_h = 0
-            for card in row_cards:
+            max_label_h = 0
+            max_note_h = 0
+            for ci, card in enumerate(row_cards):
+                if show_lbl or show_index:
+                    global_i = r * cols + ci
+                    fname = os.path.basename(card.path) if show_lbl else ""
+                    index_str = f"{global_offset + global_i + 1}." if show_index else ""
+                    label = f"{index_str} {fname}".strip() if (show_index and show_lbl) else (index_str or fname)
+                    lbl_rect = fm.boundingRect(
+                        0, 0, thumb_sz, 10000,
+                        Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignCenter,
+                        label
+                    )
+                    max_label_h = max(max_label_h, lbl_rect.height())
                 note = self.custom_notes.get(card.path, "").strip()[:char_limit]
                 if show_note and note:
-                    fm = QFontMetrics(font)
-                    rect = fm.boundingRect(
-                        0, 0, thumb_sz + pad, 10000,
+                    note_rect = fm.boundingRect(
+                        0, 0, thumb_sz, 10000,
                         Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignLeft,
                         note
                     )
-                    max_text_h = max(max_text_h, rect.height())
-            label_h = 35 if show_lbl else 0
-            row_heights.append(thumb_sz + label_h + max_text_h + pad)
+                    max_note_h = max(max_note_h, note_rect.height())
+            label_h = (max_label_h + 6) if max_label_h > 0 else 0
+            row_heights.append(thumb_sz + label_h + max_note_h + pad)
 
         sheet_width = cols * (thumb_sz + pad) + pad
         sheet_height = sum(row_heights) + pad
@@ -420,12 +438,23 @@ class ExportManager:
                 painter.drawImage(x + (thumb_sz - thumb.width()) // 2, y, thumb)
 
             curr_y = y + thumb_sz + 4
-            if show_lbl:
+            if show_lbl or show_index:
+                fname = os.path.basename(card.path) if show_lbl else ""
+                index_str = f"{global_offset + i + 1}." if show_index else ""
+                label = f"{index_str} {fname}".strip() if (show_index and show_lbl) else (index_str or fname)
+                lbl_rect = fm.boundingRect(
+                    0, 0, thumb_sz, 10000,
+                    Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignCenter,
+                    label
+                )
                 painter.setPen(QColor("#eee"))
                 painter.setFont(font)
-                fname = os.path.basename(card.path)
-                painter.drawText(x, curr_y, thumb_sz, 20, Qt.AlignmentFlag.AlignCenter, fname)
-                curr_y += 22
+                painter.drawText(
+                    x, curr_y, thumb_sz, lbl_rect.height(),
+                    Qt.TextFlag.TextWordWrap | Qt.AlignmentFlag.AlignCenter,
+                    label
+                )
+                curr_y += lbl_rect.height() + 6
 
             if show_note:
                 note = self.custom_notes.get(card.path, "").strip()[:char_limit]
@@ -441,16 +470,18 @@ class ExportManager:
         painter.end()
         return sheet
 
-    def _render_list_sheet(self, chunk, thumb_sz, show_lbl, show_note, pad, font, font_bold, char_limit):
+    def _render_list_sheet(self, chunk, thumb_sz, show_lbl, show_note, show_index, pad, font, font_bold, char_limit, global_offset=0):
         """Renders one page of a list-layout contact sheet and returns a QImage."""
         text_internal_gap = 12
         sheet_width = thumb_sz + pad + 600
         rows_data = []
 
-        for card in chunk:
+        for i, card in enumerate(chunk):
             note = self.custom_notes.get(card.path, "").strip()[:char_limit]
             fname = os.path.basename(card.path)
-            f_h = 25 if show_lbl else 0
+            index_str = f"{global_offset + i + 1}." if show_index else ""
+            label = f"{index_str} {fname}".strip() if (show_index and show_lbl) else (index_str or (fname if show_lbl else ""))
+            f_h = 25 if (show_lbl or show_index) else 0
             n_h = 0
             if show_note and note:
                 fm = QFontMetrics(font)
@@ -466,7 +497,7 @@ class ExportManager:
             total_row_h = max(thumb_sz, text_block_h)
 
             rows_data.append({
-                'card': card, 'total_h': total_row_h, 'fname': fname,
+                'card': card, 'total_h': total_row_h, 'label': label,
                 'note': note, 'f_h': f_h, 'n_h': n_h, 'gap': effective_gap
             })
 
@@ -490,12 +521,12 @@ class ExportManager:
             text_x = pad + thumb_sz + pad
             temp_y = curr_y
 
-            if show_lbl:
+            if show_lbl or show_index:
                 painter.setPen(QColor("#eee"))
                 painter.setFont(font_bold)
                 painter.drawText(
                     text_x, temp_y + 20, 600, r_data['f_h'],
-                    Qt.AlignmentFlag.AlignLeft, r_data['fname']
+                    Qt.AlignmentFlag.AlignLeft, r_data['label']
                 )
                 temp_y += r_data['f_h'] + r_data['gap']
 

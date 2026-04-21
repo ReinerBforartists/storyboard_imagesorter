@@ -174,6 +174,7 @@ class ContactSheetDialog(QDialog):
         init_thumb=150,
         init_labels=True,
         init_notes=True,
+        init_index=True,
         init_mode="grid",
         init_per_page=24
     ):
@@ -294,6 +295,15 @@ class ContactSheetDialog(QDialog):
         )
         common_lay.addWidget(self.note_cb)
 
+        self.index_cb = QPushButton("☑  Show index number")
+        self.index_cb.setCheckable(True)
+        self.index_cb.setChecked(init_index)
+        self._update_toggle_style(self.index_cb, init_index)
+        self.index_cb.toggled.connect(
+            lambda: self._update_toggle_style(self.index_cb, self.index_cb.isChecked())
+        )
+        common_lay.addWidget(self.index_cb)
+
         lay.addWidget(common_group)
 
         # --- SECTION 5: Buttons ---
@@ -337,8 +347,10 @@ class ContactSheetDialog(QDialog):
         status = "☑" if checked else "☐"
         if btn == self.label_cb:
             text = f"{status}  Show filenames"
-        else:
+        elif btn == self.note_cb:
             text = f"{status}  Show notes"
+        else:
+            text = f"{status}  Show index number"
         btn.setText(text)
 
         if checked:
@@ -373,6 +385,9 @@ class ContactSheetDialog(QDialog):
 
     def get_notes_enabled(self):
         return self.note_cb.isChecked()
+
+    def get_index_enabled(self):
+        return self.index_cb.isChecked()
 
 
 # ─── ABOUT DIALOG ─────────────────────────────────────────────────────────────

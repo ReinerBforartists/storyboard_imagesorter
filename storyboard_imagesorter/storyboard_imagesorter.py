@@ -632,11 +632,11 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             is_shift = bool(mods & Qt.KeyboardModifier.ShiftModifier)
             in_stash = self.stash_zone.container.hasFocus()
 
-            # --- NEW: Check if we are currently typing in a text field ---
+            # Check if we are currently typing in a text field
             focus_widget = QApplication.focusWidget()
             is_typing = isinstance(focus_widget, QTextEdit)
 
-            # Global hotkeys (always active)
+            # --- 1. Global Hotkeys (Always active, even when typing) ---
             if is_ctrl and key == Qt.Key.Key_Z:
                 self.undo_stack.undo()
                 return True
@@ -646,6 +646,16 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             if is_ctrl and is_shift and key == Qt.Key.Key_Z:
                 self.undo_stack.redo()
                 return True
+
+            # --- 2. Typing Protection ---
+            # If the user is typing, we must NOT trigger application hotkeys.
+            # We return False so the QTextEdit can handle its own characters.
+            if is_typing:
+                return False
+
+            # --- 3. Application Hotkeys (Only if NOT typing) ---
+
+            # Navigation / UI Toggles
             if key == Qt.Key.Key_Tab:
                 self._toggle_stash()
                 return True
@@ -667,7 +677,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
             # Stash hotkeys
             if in_stash:
-                # ... (Rest der Stash-Logik bleibt gleich)
                 if key == Qt.Key.Key_Home:
                     self.stash_zone.scroll.horizontalScrollBar().setValue(0)
                     return True
@@ -705,14 +714,10 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
             # Main area hotkeys
             else:
-                # --- FIXED: Spacebar logic for Lightbox ---
-                if key == Qt.Key.Key_Space and not is_typing:
+                # Spacebar logic for Lightbox
+                if key == Qt.Key.Key_Space:
                     self._open_lightbox()
                     return True
-
-                # If we are typing, don't intercept anything else that might interfere
-                if is_typing:
-                    return False
 
                 if key == Qt.Key.Key_Home:
                     self.scroll.verticalScrollBar().setValue(0)
@@ -734,6 +739,8 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                 if key == Qt.Key.Key_F:
                     self._scroll_to_selected()
                     return True
+
+                # Movement keys
                 if not is_ctrl:
                     if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
                         self._move_selected(-1)
@@ -741,7 +748,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                     if key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
                         self._move_selected(1)
                         return True
-                if is_ctrl:
+                else: # is_ctrl
                     if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
                         self._move_selection_absolute("start")
                         return True

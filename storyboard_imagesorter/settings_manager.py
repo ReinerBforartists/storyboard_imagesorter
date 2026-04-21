@@ -43,7 +43,7 @@ class SettingsManager(QObject):
             "contact_cols": 5,
             "contact_thumb": 150,
             "contact_labels": True,
-            "contact_notes": False,
+            "contact_notes": True,
             "contact_mode": "grid",
             "contact_images_per_page": 24,
             "auto_reload": True,

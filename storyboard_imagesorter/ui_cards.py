@@ -58,6 +58,7 @@ class ThumbnailCard(QFrame):
         self._worker = None
         self._source_image = None  # High-quality cache for sharp zooming
         self._current_style = None  # Cache to avoid redundant setStyleSheet calls
+        self._is_loading = False    # Track active loading state
         self.setAcceptDrops(True)
 
         self._idx_font_size = 10
@@ -275,14 +276,21 @@ class ThumbnailCard(QFrame):
 
     # ── Thumbnail loading ─────────────────────────────────────────────────────
 
-    def load_thumbnail(self):
-        if self._source_image and not self._source_image.isNull():
-            return
+    # ── Thumbnail loading ─────────────────────────────────────────────────────
 
+    def load_thumbnail(self, force=False):
+        """Loads the thumbnail. If force=True, it cancels any current load and restarts."""
+        # If not forcing, check if we are already doing something or have a valid image
+        if not force:
+            if (self._source_image and not self._source_image.isNull()) or self._is_loading:
+                return
+
+        # Cancel existing worker if one exists
         if self._worker:
             self._worker.cancelled = True
             self._worker = None
 
+        self._is_loading = True
         self._load_id = getattr(self, '_load_id', 0) + 1
         current_id = self._load_id
 
@@ -297,7 +305,7 @@ class ThumbnailCard(QFrame):
             self._worker.cancelled = True
             self._worker = None
 
-        # Clear the source image cache
+        self._is_loading = False # Ensure flag is reset
         self._source_image = None
 
         try:
@@ -306,11 +314,16 @@ class ThumbnailCard(QFrame):
         except (RuntimeError, AttributeError):
             pass
 
+
     def _on_loaded(self, path, image, load_id):
+        # Crucial: Reset loading flag regardless of outcome
+        self._is_loading = False
+
         if sip.isdeleted(self):
             return
         if load_id != self._load_id:
             return
+
         try:
             self._source_image = image
             if self.img_label:
@@ -337,6 +350,7 @@ class ThumbnailCard(QFrame):
             self._apply_style()
 
     def _do_reload(self):
+        # Reset everything and force a fresh load
         self._source_image = None
         self.load_thumbnail()
         self.mark_changed(False)
@@ -421,7 +435,7 @@ class ThumbnailCard(QFrame):
             p = QPainter(preview)
             for i in range(min(count, 4)):
                 p.setOpacity(0.5 + 0.5 * (i == min(count, 4) - 1))
-                o = (min(count, 4) - 1 - i) * 4
+                o = ((min(count, 4) - 1 - i) * 4)
                 p.drawPixmap(o, o, px.scaled(84, 84, Qt.AspectRatioMode.KeepAspectRatio))
             p.end()
             drag.setPixmap(preview)

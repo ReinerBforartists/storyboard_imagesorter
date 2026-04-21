@@ -374,7 +374,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             return
         if self.settings_manager.get("auto_reload", True):
             for card in cards:
-                card.load_thumbnail()
+                card.load_thumbnail(force=True)
                 self._flash_card(card)
         else:
             for card in cards:

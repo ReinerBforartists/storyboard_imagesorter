@@ -78,43 +78,41 @@ class ImageLoadWorker(QRunnable):
             return
 
         img = QImage()
-        # Maximum resolution to keep in memory for sharp zooming
         MAX_QUALITY_SIZE = 1200
 
-        # FAST PATH: Try immediate load first.
-        # For most manual imports, this is all that's needed.
-        if os.path.exists(self.path):
-            img.load(self.path)
+        # Stability check loop: Wait for file to be fully written before loading
+        for attempt in range(self.retries + 1):
+            if self.cancelled:
+                return
+            try:
+                if os.path.exists(self.path):
+                    stat1 = os.stat(self.path)
+                    size1 = stat1.st_size
+                    mtime1 = stat1.st_mtime
 
-        # SLOW PATH: If fast path failed (e.g., file locked or partially written),
-        # use retry logic to wait for stability.
-        if img.isNull() and not self.cancelled:
-            for attempt in range(self.retries):
-                if self.cancelled:
-                    return
+                    if size1 > 0:
+                        time.sleep(0.3)  # Wait for write to finalize
+                        stat2 = os.stat(self.path)
+                        if size1 == stat2.st_size and mtime1 == stat2.st_mtime:
+                            img.load(self.path)
+                            if not img.isNull():
+                                break
 
-                try:
-                    if os.path.exists(self.path):
-                        stat1 = os.stat(self.path)
-                        size1 = stat1.st_size
-                        mtime1 = stat1.st_mtime
+                if attempt < self.retries:
+                    time.sleep(0.3)
+            except Exception:
+                if attempt < self.retries:
+                    time.sleep(0.3)
 
-                        if size1 > 0:
-                            # Wait a bit to see if the file is still changing
-                            time.sleep(0.25)
-                            stat2 = os.stat(self.path)
-                            size2 = stat2.st_size
-                            mtime2 = stat2.st_mtime
-
-                            if size1 == size2 and mtime1 == mtime2:
-                                # File is stable — try loading again
-                                img.load(self.path)
-                                if not img.isNull():
-                                    break
-                except Exception:
-                    pass
-
-                time.sleep(0.25)
+        # Final processing if load was successful
+        if not img.isNull() and not self.cancelled:
+            if img.width() > 0 and img.height() > 0:
+                ratio = min(MAX_QUALITY_SIZE / img.width(), MAX_QUALITY_SIZE / img.height(), 1.0)
+                new_w, new_h = int(img.width() * ratio), int(img.height() * ratio)
+                scaled = img.scaled(new_w, new_h, Qt.AspectRatioMode.KeepAspectRatio,
+                                    Qt.TransformationMode.SmoothTransformation)
+                if not scaled.isNull() and not self.cancelled:
+                    self.signals.finished.emit(self.path, scaled)
 
         # Final integrity check before emitting to UI thread
         if not img.isNull() and not self.cancelled:

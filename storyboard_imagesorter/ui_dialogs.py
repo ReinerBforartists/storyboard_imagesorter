@@ -182,7 +182,7 @@ class ContactSheetDialog(QDialog):
         super().__init__(parent)
         self.cards = cards
         self.setWindowTitle("Export Settings")
-        self.resize(400, 500)
+        self.setMinimumWidth(400)
         self.setStyleSheet("background:#1e1e1e;color:#d0d0d0;")
 
         # Setup Debounce Timer for consistency across dialogs
@@ -191,102 +191,105 @@ class ContactSheetDialog(QDialog):
         self._update_timer.timeout.connect(self._apply_settings_debounced)
 
         lay = QVBoxLayout(self)
-        lay.setSpacing(15)
+        lay.setSpacing(8)
+        lay.setContentsMargins(14, 14, 14, 14)
 
-        # Styles for common widgets
-        spin_style = (
+        # ── Shared styles ────────────────────────────────────────────────────
+        LABEL_WIDTH = 120
+        INDENT = 16
+        input_style = (
             "background:#2a2a2a;color:#d0d0d0;border:1px solid #404040;"
             "border-radius:4px;padding:2px 4px;min-height:26px;"
         )
 
+        def make_row(label_text, widget, indent=False):
+            """Fixed-width label | widget stretches to fill remaining space."""
+            row = QHBoxLayout()
+            row.setContentsMargins(INDENT if indent else 0, 0, 0, 0)
+            row.setSpacing(8)
+            lbl = QLabel(label_text)
+            lbl.setFixedWidth(LABEL_WIDTH - (INDENT if indent else 0))
+            row.addWidget(lbl)
+            row.addWidget(widget, 1)
+            return row
+
+        def make_spin(min_val, max_val, value):
+            s = QSpinBox()
+            s.setRange(min_val, max_val)
+            s.setValue(value)
+            s.setStyleSheet(input_style)
+            s.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
+            s.setMinimumHeight(28)
+            return s
+
         # --- SECTION 1: Prefix Input ---
-        prefix_row = QHBoxLayout()
-        prefix_row.addWidget(QLabel("Filename prefix:"))
         self.prefix_edit = QLineEdit(initial_prefix)
         self.prefix_edit.setStyleSheet(
             "background:#252525;color:#d0d0d0;border:1px solid #404040;"
-            "border-radius:4px;padding:4px;"
+            "border-radius:4px;padding:4px;min-height:26px;"
         )
-        prefix_row.addWidget(self.prefix_edit)
-        lay.addLayout(prefix_row)
+        lay.addLayout(make_row("Filename prefix:", self.prefix_edit))
+
+        # Space between Prefix and Export Mode
+        lay.addSpacing(15)
 
         # --- SECTION 2: Layout Mode Selection ---
-        mode_lay = QHBoxLayout()
-        mode_lay.addWidget(QLabel("Export Mode:"))
         self.mode_combo = QComboBox()
         self.mode_combo.addItem("Grid (Contact Sheet)", "grid")
         self.mode_combo.addItem("List (Storyboard)", "list")
         self.mode_combo.setCurrentIndex(0 if init_mode == "grid" else 1)
-        self.mode_combo.setStyleSheet(spin_style)
-        self.mode_combo.setFixedWidth(200)
+        self.mode_combo.setStyleSheet(input_style)
         self.mode_combo.currentIndexChanged.connect(self._toggle_mode_ui)
-        mode_lay.addWidget(self.mode_combo)
-        mode_lay.addStretch()
-        lay.addLayout(mode_lay)
+        lay.addLayout(make_row("Export Mode:", self.mode_combo))
 
         # --- SECTION 3: Mode-Specific Options (using StackedWidget) ---
         self.options_stack = QStackedWidget()
+        self.options_stack.setFixedHeight(72)
 
-        # Page 0: Grid Options
         grid_page = QWidget()
         grid_lay = QVBoxLayout(grid_page)
         grid_lay.setContentsMargins(0, 0, 0, 0)
-        grid_row1 = QHBoxLayout()
-        grid_row1.addWidget(QLabel("Columns:"))
-        self.cols_spin = QSpinBox()
-        self.cols_spin.setRange(1, 20)
-        self.cols_spin.setValue(init_cols)
-        self.cols_spin.setStyleSheet(spin_style)
-        grid_row1.addWidget(self.cols_spin)
-        grid_lay.addLayout(grid_row1)
+        grid_lay.setSpacing(8)
 
-        grid_row2 = QHBoxLayout()
-        grid_row2.addWidget(QLabel("Images per page:"))
-        self.grid_per_page_spin = QSpinBox()
-        self.grid_per_page_spin.setRange(1, 500)
-        self.grid_per_page_spin.setValue(init_grid_per_page)
-        self.grid_per_page_spin.setStyleSheet(spin_style)
-        grid_row2.addWidget(self.grid_per_page_spin)
-        grid_row2.addStretch()
-        grid_lay.addLayout(grid_row2)
+        self.cols_spin = make_spin(1, 20, init_cols)
+        grid_lay.addLayout(make_row("Columns:", self.cols_spin, indent=True))
 
-        # Page 1: List Options
+        self.grid_per_page_spin = make_spin(1, 500, init_grid_per_page)
+        grid_lay.addLayout(make_row("Images per page:", self.grid_per_page_spin, indent=True))
+
         list_page = QWidget()
         list_lay = QVBoxLayout(list_page)
         list_lay.setContentsMargins(0, 0, 0, 0)
-        list_lay.addWidget(QLabel("Optimized for long notes and readability."))
+        list_lay.setSpacing(8)
 
-        list_row1 = QHBoxLayout()
-        list_row1.addWidget(QLabel("Images per page:"))
-        self.list_per_page_spin = QSpinBox()
-        self.list_per_page_spin.setRange(1, 500)
-        self.list_per_page_spin.setValue(init_list_per_page)
-        self.list_per_page_spin.setStyleSheet(spin_style)
-        list_row1.addWidget(self.list_per_page_spin)
-        list_row1.addStretch()
-        list_lay.addLayout(list_row1)
+        self.list_per_page_spin = make_spin(1, 500, init_list_per_page)
+        list_lay.addLayout(make_row("Images per page:", self.list_per_page_spin, indent=True))
+        list_lay.addStretch()
 
-        self.options_stack.addWidget(grid_page)  # Index 0
-        self.options_stack.addWidget(list_page)  # Index 1
+        self.options_stack.addWidget(grid_page)   # Index 0
+        self.options_stack.addWidget(list_page)   # Index 1
         lay.addWidget(self.options_stack)
 
-        # --- SECTION 4: Common Settings (Pagination, Thumb Size, Labels, Notes) ---
-        common_group = QFrame()
-        common_group.setStyleSheet("background:#252525; border-radius:6px; padding:10px;")
-        common_lay = QVBoxLayout(common_group)
+        # Space before Thumb Size to separate Export Mode section
+        lay.addSpacing(15)
 
-        # Thumbnail Size
-        thumb_row = QHBoxLayout()
-        thumb_row.addWidget(QLabel("Thumb size (px):"))
-        self.thumb_spin = QSpinBox()
-        self.thumb_spin.setRange(40, self.THUMB_MAX)
-        self.thumb_spin.setValue(min(init_thumb, self.THUMB_MAX))
-        self.thumb_spin.setStyleSheet(spin_style)
-        thumb_row.addWidget(self.thumb_spin)
-        thumb_row.addStretch()
-        common_lay.addLayout(thumb_row)
+        # --- SECTION 4: Thumb Size (always visible) ---
+        self.thumb_spin = make_spin(40, self.THUMB_MAX, min(init_thumb, self.THUMB_MAX))
+        lay.addLayout(make_row("Thumb size (px):", self.thumb_spin))
 
-        # --- BUTTON CREATION (Must be done first to avoid AttributeError) ---
+        # Spacer before separator
+        lay.addSpacing(10)
+
+        # --- Separator ---
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("color:#383838;margin-top:2px;margin-bottom:2px;")
+        lay.addWidget(sep)
+
+        # Spacer before toggle buttons
+        lay.addSpacing(10)
+
+        # --- SECTION 5: Toggle Buttons ---
         self.index_cb = QPushButton("☑  Show index number")
         self.index_cb.setCheckable(True)
         self.index_cb.setChecked(init_index)
@@ -299,7 +302,6 @@ class ContactSheetDialog(QDialog):
         self.note_cb.setCheckable(True)
         self.note_cb.setChecked(init_notes)
 
-        # --- BUTTON STYLING & CONNECTIONS (Now safe because all buttons exist) ---
         self._update_toggle_style(self.index_cb, init_index)
         self._update_toggle_style(self.label_cb, init_labels)
         self._update_toggle_style(self.note_cb, init_notes)
@@ -314,14 +316,18 @@ class ContactSheetDialog(QDialog):
             lambda: self._update_toggle_style(self.note_cb, self.note_cb.isChecked())
         )
 
-        # Add them to the layout in your requested order (Index on top)
-        common_lay.addWidget(self.index_cb)
-        common_lay.addWidget(self.label_cb)
-        common_lay.addWidget(self.note_cb)
+        toggle_lay = QVBoxLayout()
+        toggle_lay.setSpacing(3)
+        toggle_lay.setContentsMargins(0, 0, 0, 0)
+        toggle_lay.addWidget(self.index_cb)
+        toggle_lay.addWidget(self.label_cb)
+        toggle_lay.addWidget(self.note_cb)
+        lay.addLayout(toggle_lay)
 
-        lay.addWidget(common_group)
+        # Spacer before OK/Cancel buttons
+        lay.addSpacing(10)
 
-        # --- SECTION 5: Buttons ---
+        # --- SECTION 6: OK / Cancel ---
         btns = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -332,25 +338,24 @@ class ContactSheetDialog(QDialog):
         )
         lay.addWidget(btns)
 
-        # Final stretch to push everything up
-        lay.addStretch()
-
         self._toggle_mode_ui()
 
-        # Connect all inputs to the debounce trigger for consistency
+        # Connect debounce triggers
         self.prefix_edit.textChanged.connect(self._trigger_update)
         self.cols_spin.valueChanged.connect(self._trigger_update)
         self.grid_per_page_spin.valueChanged.connect(self._trigger_update)
         self.list_per_page_spin.valueChanged.connect(self._trigger_update)
         self.thumb_spin.valueChanged.connect(self._trigger_update)
 
+        # Finalize size
+        self.adjustSize()
+
     def _trigger_update(self):
         """Starts/restarts the debounce timer."""
-        self._update_timer.start(600)   # 600ms delay after last keystroke
+        self._update_timer.start(600)
 
     def _apply_settings_debounced(self):
-        """Placeholder for debounced logic (e.g. if we added a live preview)."""
-        # Currently, we just use the getters when 'Ok' is clicked.
+        """Placeholder for debounced logic."""
         pass
 
     def _toggle_mode_ui(self):
@@ -380,7 +385,6 @@ class ContactSheetDialog(QDialog):
                 "border:1px solid #383838;padding:5px 10px;text-align:left;}"
             )
 
-    # Getters for the Export Logic
     def get_prefix(self):
         return self.prefix_edit.text()
 
@@ -407,7 +411,6 @@ class ContactSheetDialog(QDialog):
 
     def get_index_enabled(self):
         return self.index_cb.isChecked()
-
 
 # ─── ABOUT DIALOG ─────────────────────────────────────────────────────────────
 

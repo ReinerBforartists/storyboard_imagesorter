@@ -160,18 +160,19 @@ class ExportManager:
         dlg = ui_dialogs.ExportPreviewDialog(
             self.cards, self,
             initial_prefix=self.saved_export_prefix,
-            mapping_enabled=mapping_pref
+            mapping_enabled=mapping_pref,
+            initial_dir=self.last_export_dir
         )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
         prefix = dlg.get_prefix()
+        folder = dlg.get_folder()
         self.saved_export_prefix = prefix
         mapping_requested = dlg.get_mapping_enabled()
         self.settings_manager.set("export_mapping_enabled", mapping_requested)
         self._save_settings()
 
-        folder = QFileDialog.getExistingDirectory(self, "Select Export Folder", self.last_export_dir)
         if not folder:
             return
         self.last_export_dir = folder
@@ -182,21 +183,6 @@ class ExportManager:
             f"{prefix}{str(i + 1).zfill(digits)}{os.path.splitext(c.path)[1]}"
             for i, c in enumerate(self.cards)
         ]
-
-        try:
-            collisions = [f for f in filenames if f in os.listdir(folder)]
-        except OSError:
-            collisions = []
-
-        if collisions:
-            reply = QMessageBox.question(
-                self, "Files exist",
-                f"{len(collisions)} file(s) already exist. Overwrite?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.No:
-                return
 
         self._start_progress(len(self.cards))
         QApplication.processEvents()
@@ -295,12 +281,14 @@ class ExportManager:
             init_index=self.settings_manager.get("contact_show_index", True),
             init_mode=self.settings_manager.get("contact_mode", "grid"),
             init_grid_per_page=self.saved_contact_grid_per_page,
-            init_list_per_page=self.saved_contact_list_per_page
+            init_list_per_page=self.saved_contact_list_per_page,
+            initial_dir=self.last_export_dir
         )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
 
         prefix = dlg.get_prefix()
+        folder = dlg.get_folder()
         self.saved_contact_prefix = prefix
         self.saved_contact_cols = dlg.get_cols()
         self.saved_contact_thumb = dlg.get_thumb_size()
@@ -317,7 +305,6 @@ class ExportManager:
         self.settings_manager.set("contact_show_index", dlg.get_index_enabled())
         self._save_settings()
 
-        folder = QFileDialog.getExistingDirectory(self, "Select Export Folder", self.last_export_dir)
         if not folder:
             return
         self.last_export_dir = folder
@@ -349,15 +336,7 @@ class ExportManager:
             )
 
         collisions = [f for f in expected_filenames if os.path.exists(f)]
-        if collisions:
-            reply = QMessageBox.question(
-                self, "Files exist",
-                f"{len(collisions)} file(s) already exist. Overwrite?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.No:
-                return
+        # Collision warning was already shown in the dialog — proceed directly.
 
         self._start_progress(len(card_chunks))
         QApplication.processEvents()

@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QTableWidget, QHeaderView, QDialogButtonBox, QSpinBox,
     QPushButton, QTableWidgetItem, QFrame, QWidget, QCheckBox,
-    QComboBox, QStackedWidget, QScrollArea
+    QComboBox, QStackedWidget, QScrollArea, QFileDialog
 )
 from PyQt6.QtGui import (
     QPainter, QColor, QFont, QImage, QPixmap
@@ -35,34 +35,94 @@ from PyQt6.QtCore import (
 
 import utils_workers
 
+# ─── SHARED HELPERS ──────────────────────────────────────────────────────────
+
+_FOLDER_ROW_STYLE = (
+    "background:#252525;color:#d0d0d0;border:1px solid #404040;"
+    "border-radius:4px;padding:2px 4px;min-height:26px;"
+)
+_CHOOSE_BTN_STYLE = (
+    "QPushButton{background:#2a2a2a;color:#d0d0d0;border:1px solid #404040;"
+    "border-radius:4px;padding:2px 10px;min-height:26px;}"
+    "QPushButton:hover{background:#383838;}"
+)
+_COLLISION_STYLE_WARN = (
+    "background:#3a1010;color:#ff7070;border:1px solid #7a2020;"
+    "border-radius:4px;padding:4px 8px;font-size:11px;"
+)
+_COLLISION_STYLE_OK = (
+    "background:#0f2a18;color:#5dba7a;border:1px solid #1e5c35;"
+    "border-radius:4px;padding:4px 8px;font-size:11px;"
+)
+_EXPORT_BTN_STYLE = (
+    "QPushButton{background:#1a3f6f;color:#d0e8ff;border:1px solid #2d6fab;"
+    "border-radius:4px;padding:4px 18px;min-height:28px;font-weight:bold;}"
+    "QPushButton:hover{background:#245a9e;}"
+    "QPushButton:disabled{background:#252525;color:#555;border-color:#383838;}"
+)
+_CANCEL_BTN_STYLE = (
+    "QPushButton{background:#2a2a2a;color:#d0d0d0;border:1px solid #404040;"
+    "border-radius:4px;padding:4px 18px;min-height:28px;}"
+    "QPushButton:hover{background:#383838;}"
+)
+
+
+def _make_folder_row(dialog, initial_dir=""):
+    """
+    Returns (layout, path_edit, choose_btn).
+    Clicking choose_btn opens a native folder picker and updates path_edit.
+    """
+    row = QHBoxLayout()
+    row.setSpacing(6)
+    path_edit = QLineEdit(initial_dir)
+    path_edit.setPlaceholderText("Choose export folder…")
+    path_edit.setStyleSheet(_FOLDER_ROW_STYLE)
+    row.addWidget(path_edit, 1)
+    choose_btn = QPushButton("Choose Folder")
+    choose_btn.setStyleSheet(_CHOOSE_BTN_STYLE)
+    choose_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+
+    def _pick():
+        current = path_edit.text() or ""
+        folder = QFileDialog.getExistingDirectory(dialog, "Select Export Folder", current)
+        if folder:
+            path_edit.setText(folder)
+
+    choose_btn.clicked.connect(_pick)
+    row.addWidget(choose_btn)
+    return row, path_edit, choose_btn
+
+
 # ─── EXPORT PREVIEW DIALOG ──────────────────────────────────────────────────
 
 class ExportPreviewDialog(QDialog):
     """
-    A dialog that allows users to preview filenames and choose
-    export options like mapping and summary.
+    Single-step image export dialog:
+    prefix → folder picker → live collision warning → Export button.
     """
 
-    def __init__(self, cards, parent=None, initial_prefix="image_", mapping_enabled=False):
+    def __init__(self, cards, parent=None, initial_prefix="image_",
+                 mapping_enabled=False, initial_dir=""):
         super().__init__(parent)
         self.cards = cards
-        self.setWindowTitle("Export preview")
-        self.resize(520, 480)
+        self._folder = initial_dir
+        self.setWindowTitle("Export Images")
+        self.resize(540, 520)
         self.setStyleSheet("background:#1e1e1e;color:#d0d0d0;")
         lay = QVBoxLayout(self)
+        lay.setSpacing(8)
 
-        # Prefix input row
+        # ── Prefix row ───────────────────────────────────────────────────────
         prefix_row = QHBoxLayout()
-        prefix_row.addWidget(QLabel("Filename prefix:"))
+        prefix_lbl = QLabel("Filename prefix:")
+        prefix_lbl.setFixedWidth(110)
+        prefix_row.addWidget(prefix_lbl)
         self.prefix_edit = QLineEdit(initial_prefix)
-        self.prefix_edit.setStyleSheet(
-            "background:#252525;color:#d0d0d0;border:1px solid #404040;"
-            "border-radius:4px;padding:2px;"
-        )
+        self.prefix_edit.setStyleSheet(_FOLDER_ROW_STYLE)
         prefix_row.addWidget(self.prefix_edit)
         lay.addLayout(prefix_row)
 
-        # Options row (Mapping Checkbox)
+        # ── Mapping checkbox ──────────────────────────────────────────────────
         options_row = QHBoxLayout()
         self.mapping_cb = QCheckBox("Include filename mapping (.txt)")
         self.mapping_cb.setChecked(mapping_enabled)
@@ -76,12 +136,11 @@ class ExportPreviewDialog(QDialog):
         options_row.addStretch()
         lay.addLayout(options_row)
 
-        # Info label
+        # ── Preview table ─────────────────────────────────────────────────────
         info = QLabel(f"{len(cards)} images will be exported with these names:")
-        info.setStyleSheet("color:#bbb;font-size:12px;margin-bottom:4px;")
+        info.setStyleSheet("color:#bbb;font-size:12px;margin-bottom:2px;")
         lay.addWidget(info)
 
-        # Export preview table
         self.table = QTableWidget(len(cards), 2)
         self.table.setHorizontalHeaderLabels(["New name", "Original file"])
         self.table.horizontalHeader().setSectionResizeMode(
@@ -95,65 +154,101 @@ class ExportPreviewDialog(QDialog):
         self.table.setStyleSheet(
             "QTableWidget{background:#252525;border:1px solid #383838;"
             "gridline-color:#2e2e2e;}"
-            "QHeaderView::section{background:#2a2a2a;color:#ccc;border:none;"
-            "padding:4px;}"
+            "QHeaderView::section{background:#2a2a2a;color:#ccc;border:none;padding:4px;}"
             "QTableWidget::item{padding:3px 6px;}"
         )
-
-        # Setup Debounce Timer to prevent lag during typing
-        self._update_timer = QTimer()
-        self._update_timer.setSingleShot(True)
-        self._update_timer.timeout.connect(self._populate_table_debounced)
-
-        # Initial population
-        self._populate_table_debounced()
         lay.addWidget(self.table)
 
-        # Dialog buttons (Ok/Cancel)
-        btns = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok |
-            QDialogButtonBox.StandardButton.Cancel
-        )
-        btns.accepted.connect(self.accept)
-        btns.rejected.connect(self.reject)
-        btns.setStyleSheet(
-            "QPushButton{background:#2a2a2a;color:#d0d0d0;border:1px solid #404040;"
-            "border-radius:4px;padding:4px 18px;min-height:28px;}"
-            "QPushButton:hover{background:#383838;}"
-        )
-        lay.addWidget(btns)
+        # ── Folder row ────────────────────────────────────────────────────────
+        folder_lbl = QLabel("Export folder:")
+        folder_lbl.setStyleSheet("color:#bbb;font-size:12px;margin-top:4px;")
+        lay.addWidget(folder_lbl)
+        folder_row, self._folder_edit, _ = _make_folder_row(self, initial_dir)
+        lay.addLayout(folder_row)
 
-        # Connect textChanged to the timer instead of directly to population
+        # ── Collision warning ─────────────────────────────────────────────────
+        self._collision_lbl = QLabel("")
+        self._collision_lbl.setWordWrap(True)
+        self._collision_lbl.setVisible(False)
+        lay.addWidget(self._collision_lbl)
+
+        # ── Buttons row ───────────────────────────────────────────────────────
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setStyleSheet(_CANCEL_BTN_STYLE)
+        cancel_btn.clicked.connect(self.reject)
+        btn_row.addWidget(cancel_btn)
+        self._export_btn = QPushButton("Export")
+        self._export_btn.setStyleSheet(_EXPORT_BTN_STYLE)
+        self._export_btn.setEnabled(False)
+        self._export_btn.clicked.connect(self.accept)
+        btn_row.addWidget(self._export_btn)
+        lay.addLayout(btn_row)
+
+        # ── Debounce timer ────────────────────────────────────────────────────
+        self._update_timer = QTimer()
+        self._update_timer.setSingleShot(True)
+        self._update_timer.timeout.connect(self._refresh)
+
         self.prefix_edit.textChanged.connect(self._trigger_update)
+        self._folder_edit.textChanged.connect(self._trigger_update)
+
+        # Initial population
+        self._refresh()
 
     def _trigger_update(self):
-        """Starts/restarts the debounce timer."""
-        self._update_timer.start(600)  # 600ms delay after last keystroke
+        self._update_timer.start(400)
 
-    def _populate_table_debounced(self):
-        """Actual heavy lifting, called only when typing pauses."""
+    def _refresh(self):
+        """Rebuild table preview and collision warning."""
         prefix = self.prefix_edit.text()
-        self._populate_table(prefix)
+        folder = self._folder_edit.text().strip()
 
-    def _populate_table(self, prefix):
-        """Updates the table preview as the user types the prefix."""
+        # Table
         digits = len(str(len(self.cards)))
-        # Block signals to prevent flickering while updating items
         self.table.blockSignals(True)
         for i, card in enumerate(self.cards):
             ext = os.path.splitext(card.path)[1]
             new_name = f"{prefix}{str(i + 1).zfill(digits)}{ext}"
-            # Use setItem only if necessary or wrap in a way that's fast
             self.table.setItem(i, 0, QTableWidgetItem(new_name))
             self.table.setItem(i, 1, QTableWidgetItem(os.path.basename(card.path)))
         self.table.blockSignals(False)
 
+        # Collision check
+        collisions = []
+        if folder and os.path.isdir(folder):
+            try:
+                existing = set(os.listdir(folder))
+                filenames = [
+                    f"{prefix}{str(i + 1).zfill(digits)}{os.path.splitext(c.path)[1]}"
+                    for i, c in enumerate(self.cards)
+                ]
+                collisions = [f for f in filenames if f in existing]
+            except OSError:
+                pass
+
+        if collisions:
+            names = ", ".join(collisions[:5])
+            if len(collisions) > 5:
+                names += f" … (+{len(collisions) - 5} more)"
+            self._collision_lbl.setText(
+                f"⚠  {len(collisions)} file(s) will be overwritten: {names}"
+            )
+            self._collision_lbl.setStyleSheet(_COLLISION_STYLE_WARN)
+            self._collision_lbl.setVisible(True)
+        else:
+            self._collision_lbl.setVisible(False)
+
+        self._export_btn.setEnabled(bool(folder and os.path.isdir(folder)))
+
     def get_prefix(self):
-        """Returns the current text from the prefix input field."""
         return self.prefix_edit.text()
 
+    def get_folder(self):
+        return self._folder_edit.text().strip()
+
     def get_mapping_enabled(self):
-        """Returns whether the mapping checkbox is checked."""
         return self.mapping_cb.isChecked()
 
 # ─── CONTACT SHEET DIALOG ─────────────────────────────────────────────────────
@@ -177,11 +272,13 @@ class ContactSheetDialog(QDialog):
         init_index=True,
         init_mode="grid",
         init_grid_per_page=20,
-        init_list_per_page=10
+        init_list_per_page=10,
+        initial_dir=""
     ):
         super().__init__(parent)
         self.cards = cards
-        self.setWindowTitle("Export Settings")
+        self._initial_dir = initial_dir
+        self.setWindowTitle("Export Contact Sheet")
         self.setMinimumWidth(400)
         self.setStyleSheet("background:#1e1e1e;color:#d0d0d0;")
 
@@ -324,19 +421,38 @@ class ContactSheetDialog(QDialog):
         toggle_lay.addWidget(self.note_cb)
         lay.addLayout(toggle_lay)
 
-        # Spacer before OK/Cancel buttons
+        # Spacer before folder row
         lay.addSpacing(10)
 
-        # --- SECTION 6: OK / Cancel ---
-        btns = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
-        )
-        btns.accepted.connect(self.accept)
-        btns.rejected.connect(self.reject)
-        btns.setStyleSheet(
-            "QPushButton{background:#2a2a2a;color:#d0d0d0;border:1px solid #404040;padding:6px 18px;}"
-        )
-        lay.addWidget(btns)
+        # --- SECTION 6: Export Folder ---
+        folder_lbl = QLabel("Export folder:")
+        folder_lbl.setStyleSheet("color:#bbb;font-size:12px;")
+        lay.addWidget(folder_lbl)
+        folder_row, self._folder_edit, _ = _make_folder_row(self, initial_dir)
+        lay.addLayout(folder_row)
+
+        # --- Collision warning ---
+        self._collision_lbl = QLabel("")
+        self._collision_lbl.setWordWrap(True)
+        self._collision_lbl.setVisible(False)
+        lay.addWidget(self._collision_lbl)
+
+        # Spacer before buttons
+        lay.addSpacing(6)
+
+        # --- SECTION 7: Export / Cancel ---
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.setStyleSheet(_CANCEL_BTN_STYLE)
+        cancel_btn.clicked.connect(self.reject)
+        btn_row.addWidget(cancel_btn)
+        self._export_btn = QPushButton("Export")
+        self._export_btn.setStyleSheet(_EXPORT_BTN_STYLE)
+        self._export_btn.setEnabled(False)
+        self._export_btn.clicked.connect(self.accept)
+        btn_row.addWidget(self._export_btn)
+        lay.addLayout(btn_row)
 
         self._toggle_mode_ui()
 
@@ -346,17 +462,60 @@ class ContactSheetDialog(QDialog):
         self.grid_per_page_spin.valueChanged.connect(self._trigger_update)
         self.list_per_page_spin.valueChanged.connect(self._trigger_update)
         self.thumb_spin.valueChanged.connect(self._trigger_update)
+        self._folder_edit.textChanged.connect(self._trigger_update)
+        self.mode_combo.currentIndexChanged.connect(self._trigger_update)
+
+        # Initial state
+        self._update_collision_warning()
 
         # Finalize size
         self.adjustSize()
 
     def _trigger_update(self):
         """Starts/restarts the debounce timer."""
-        self._update_timer.start(600)
+        self._update_timer.start(400)
 
     def _apply_settings_debounced(self):
-        """Placeholder for debounced logic."""
-        pass
+        """Called after typing pause — refresh collision warning."""
+        self._update_collision_warning()
+
+    def _update_collision_warning(self):
+        """Compute expected output filenames and warn about collisions."""
+        folder = self._folder_edit.text().strip()
+        prefix = self.prefix_edit.text()
+        mode = self.mode_combo.currentData()
+        per_page = (
+            self.grid_per_page_spin.value()
+            if mode == "grid"
+            else self.list_per_page_spin.value()
+        )
+        num_chunks = max(1, -(-len(self.cards) // per_page)) if self.cards else 1
+        suffix = "grid" if mode == "grid" else "list"
+        expected = [
+            f"{prefix}_{suffix}_{i + 1:02d}.png" for i in range(num_chunks)
+        ]
+
+        collisions = []
+        if folder and os.path.isdir(folder):
+            try:
+                existing = set(os.listdir(folder))
+                collisions = [f for f in expected if f in existing]
+            except OSError:
+                pass
+
+        if collisions:
+            names = ", ".join(collisions[:5])
+            if len(collisions) > 5:
+                names += f" … (+{len(collisions) - 5} more)"
+            self._collision_lbl.setText(
+                f"⚠  {len(collisions)} file(s) will be overwritten: {names}"
+            )
+            self._collision_lbl.setStyleSheet(_COLLISION_STYLE_WARN)
+            self._collision_lbl.setVisible(True)
+        else:
+            self._collision_lbl.setVisible(False)
+
+        self._export_btn.setEnabled(bool(folder and os.path.isdir(folder)))
 
     def _toggle_mode_ui(self):
         """Switches the visible options based on selected mode."""
@@ -387,6 +546,9 @@ class ContactSheetDialog(QDialog):
 
     def get_prefix(self):
         return self.prefix_edit.text()
+
+    def get_folder(self):
+        return self._folder_edit.text().strip()
 
     def get_mode(self):
         return self.mode_combo.currentData()

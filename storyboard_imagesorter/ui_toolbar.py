@@ -288,192 +288,200 @@ class ToolbarMixin:
         menu = QMenu(self)
         menu.setStyleSheet(constants.MENU_STYLE)
 
-        # Gap control
-        gap_wa = QWidgetAction(menu)
-        gap_container = QWidget()
-        gap_container.setStyleSheet("background:#252525; border:1px solid #383838; border-radius:6px;")
-        gap_row = QHBoxLayout(gap_container)
-        gap_row.setContentsMargins(12, 6, 12, 6)
-        gap_row.setSpacing(8)
+        # Absolute widths to guarantee perfect vertical alignment of all controls
+        LABEL_WIDTH = 100
+        SLIDER_WIDTH = 100
+        SPIN_WIDTH = 45
+        # Total offset from the left edge for the spinbox: Label + Slider/Spacing + small gap
+        CONTROL_X_OFFSET = LABEL_WIDTH + SLIDER_WIDTH + 10
 
-        lbl = QLabel("Gap")
-        lbl.setStyleSheet("font-size:11px;color:#bbb;")
+        # --- SECTION 1: LAYOUT & SYSTEM CONFIG ---
+        config_group = QWidgetAction(menu)
+        config_container = QWidget()
+        config_container.setStyleSheet(
+            "background:#252525; border:1px solid #383838; border-radius:6px;"
+        )
+        config_vbox = QVBoxLayout(config_container)
+        config_vbox.setContentsMargins(12, 8, 12, 8)
+        config_vbox.setSpacing(10)
+
+        # Gap control (Slider + Spin)
+        gap_row = QHBoxLayout()
+        lbl_gap = QLabel("Gap")
+        lbl_gap.setFixedWidth(LABEL_WIDTH)
+        lbl_gap.setStyleSheet("font-size:11px;color:#bbb;")
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setRange(0, 100)
         slider.setValue(self.current_spacing)
-        slider.setFixedWidth(110)
+        slider.setFixedWidth(SLIDER_WIDTH)
+        spin_gap = QSpinBox()
+        spin_gap.setRange(0, 100)
+        spin_gap.setValue(self.current_spacing)
+        spin_gap.setFixedWidth(SPIN_WIDTH)
+        spin_gap.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
 
-        spin = QSpinBox()
-        spin.setMinimumHeight(30)
-        spin.setRange(0, 100)
-        spin.setValue(self.current_spacing)
-        spin.setFixedWidth(48)
-        spin.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
+        gap_row.addWidget(lbl_gap)
+        gap_row.addWidget(slider)
+        gap_row.addWidget(spin_gap)
+        gap_row.addStretch()  # Fill remaining space to the right
+        config_vbox.addLayout(gap_row)
 
-        # Scroll zone opacity control
-        sz_wa = QWidgetAction(menu)
-        sz_container = QWidget()
-        sz_container.setStyleSheet("background:#252525; border:1px solid #383838; border-radius:6px;")
-        sz_row = QHBoxLayout(sz_container)
-        sz_row.setContentsMargins(12, 6, 12, 6)
-        sz_row.setSpacing(8)
+        # Scroll zone opacity (Slider + Spin)
+        sz_row = QHBoxLayout()
+        lbl_sz = QLabel("Scroll Opacity")
+        lbl_sz.setFixedWidth(LABEL_WIDTH)
+        lbl_sz.setStyleSheet("font-size:11px;color:#bbb;")
+        slider_sz = QSlider(Qt.Orientation.Horizontal)
+        slider_sz.setRange(0, 255)
+        slider_sz.setValue(self.settings_manager.get("scroll_zone_alpha", 80))
+        slider_sz.setFixedWidth(SLIDER_WIDTH)
+        spin_sz = QSpinBox()
+        spin_sz.setRange(0, 255)
+        spin_sz.setValue(self.settings_manager.get("scroll_zone_alpha", 80))
+        spin_sz.setFixedWidth(SPIN_WIDTH)
+        spin_sz.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
 
-        sz_lbl = QLabel("Scroll zone opacity")
-        sz_lbl.setStyleSheet("font-size:11px;color:#bbb;")
-        sz_slider = QSlider(Qt.Orientation.Horizontal)
-        sz_slider.setRange(0, 255)
-        sz_slider.setValue(self.settings_manager.get("scroll_zone_alpha", 80))
-        sz_slider.setFixedWidth(110)
+        sz_row.addWidget(lbl_sz)
+        sz_row.addWidget(slider_sz)
+        sz_row.addWidget(spin_sz)
+        sz_row.addStretch()  # Fill remaining space to the right
+        config_vbox.addLayout(sz_row)
 
-        sz_spin = QSpinBox()
-        sz_spin.setMinimumHeight(30)
-        sz_spin.setRange(0, 255)
-        sz_spin.setValue(self.settings_manager.get("scroll_zone_alpha", 80))
-        sz_spin.setFixedWidth(48)
-        sz_spin.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
+        # Undo limit (Aligned exactly with Spinboxes above)
+        undo_row = QHBoxLayout()
+        lbl_undo = QLabel("Undo limit")
+        lbl_undo.setFixedWidth(LABEL_WIDTH)
+        lbl_undo.setStyleSheet("font-size:11px;color:#bbb;")
+        undo_spin = QSpinBox()
+        undo_spin.setRange(5, 1000)
+        undo_spin.setValue(self.settings_manager.get("undo_limit", 50))
+        undo_spin.setFixedWidth(SPIN_WIDTH)
+        undo_spin.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
 
-        def _sync_sz(val, block_widget):
-            block_widget.blockSignals(True)
-            block_widget.setValue(val)
-            block_widget.blockSignals(False)
-            self.settings_manager.set("scroll_zone_alpha", val)
-            self.settings_manager.request_save()
+        undo_row.addWidget(lbl_undo)
+        undo_row.addSpacing(CONTROL_X_OFFSET - LABEL_WIDTH)
+        undo_row.addWidget(undo_spin)
+        undo_row.addStretch()     # Fill remaining space to the right
+        config_vbox.addLayout(undo_row)
 
-        sz_slider.valueChanged.connect(lambda v: _sync_sz(v, sz_spin))
-        sz_spin.valueChanged.connect(lambda v: _sync_sz(v, sz_slider))
-        for w in (sz_lbl, sz_slider, sz_spin):
-            sz_row.addWidget(w)
-        sz_wa.setDefaultWidget(sz_container)
-        menu.addAction(sz_wa)
+        config_group.setDefaultWidget(config_container)
+        menu.addAction(config_group)
 
-        def _sync_and_apply(val, block_widget):
-            block_widget.blockSignals(True)
-            block_widget.setValue(val)
-            block_widget.blockSignals(False)
-            self.current_spacing = val
-            self.flow_layout.setSpacing(val)
-            self._rebuild_flow_completely()
-            self.settings_manager.request_save()
+        menu.addSeparator()
 
-        slider.valueChanged.connect(lambda v: _sync_and_apply(v, spin))
-        spin.valueChanged.connect(lambda v: _sync_and_apply(v, slider))
-        for w in (lbl, slider, spin):
-            gap_row.addWidget(w)
-        gap_wa.setDefaultWidget(gap_container)
-        menu.addAction(gap_wa)
+        # --- SECTION 2: VISUALS & AUTOMATION (Toggles) ---
+        visuals_group = QWidgetAction(menu)
+        visuals_container = QWidget()
+        visuals_container.setStyleSheet("background: transparent;")
+        visuals_vbox = QVBoxLayout(visuals_container)
+        visuals_vbox.setContentsMargins(12, 5, 12, 5)
+        visuals_vbox.setSpacing(6)
 
-        # Styles für die Toggle-Buttons
-        _ss_active = (
+        # Styles for toggle buttons
+        ss_active = (
             "QPushButton{background:#172d4e;color:#4d8fcc;"
-            "border:1px solid #2d6fab;border-radius:4px;padding:4px 10px;font-size:11px;}"
+            "border:1px solid #2d6fab;padding:4px 10px;text-align:left;font-size:11px;}"
         )
-        _ss_inactive = (
+        ss_inactive = (
             "QPushButton{background:#2a2a2a;color:#aaa;"
-            "border:1px solid #383838;border-radius:4px;padding:4px 10px;font-size:11px;}"
+            "border:1px solid #383838;padding:4px 10px;text-align:left;font-size:11px;}"
         )
 
-        # Auto-reload toggle (optimiert)
-        ar_wa = QWidgetAction(menu)
-        ar_container = QWidget()
-        ar_container.setStyleSheet("background: transparent;")
-        ar_row = QHBoxLayout(ar_container)
-        ar_row.setContentsMargins(12, 2, 12, 2)
-        ar_row.setSpacing(8)
-
+        # Group A: Automation (Auto-reload toggle)
         ar_cb = QPushButton()
         ar_cb.setCheckable(True)
         initial_ar = self.settings_manager.get("auto_reload", True)
         ar_cb.setChecked(initial_ar)
-        # Initial look without trigger
         status_icon = "✓" if initial_ar else ""
-        ar_cb.setText(f"↻  Auto-reload changed images {status_icon}")
-        ar_cb.setStyleSheet(_ss_active if initial_ar else _ss_inactive)
+        ar_cb.setText(f"↻  Auto-reload images {status_icon}")
+        ar_cb.setStyleSheet(ss_active if initial_ar else ss_inactive)
 
         def _toggle_ar(checked):
+            """Handles auto-reload toggle logic."""
             self.settings_manager.set("auto_reload", checked)
             self.settings_manager.request_save()
-            status = "✓" if checked else ""
-            ar_cb.setText(f"↻  Auto-reload changed images {status}")
-            ar_cb.setStyleSheet(_ss_active if checked else _ss_inactive)
+            icon = "✓" if checked else ""
+            ar_cb.setText(f"↻  Auto-reload images {icon}")
+            ar_cb.setStyleSheet(ss_active if checked else ss_inactive)
 
         ar_cb.toggled.connect(_toggle_ar)
-        ar_row.addWidget(ar_cb)
-        ar_wa.setDefaultWidget(ar_container)
-        menu.addAction(ar_wa)
-        menu.addSeparator()
+        visuals_vbox.addWidget(ar_cb)
 
-        # Label visibility toggles (DER FIX FÜR DEN LAG)
-        label_wa = QWidgetAction(menu)
-        label_container = QWidget()
-        label_layout = QVBoxLayout(label_container)
-        label_layout.setContentsMargins(12, 6, 12, 6)
-        label_layout.setSpacing(4)
+        # Whitespace between Automation and Visual Toggles
+        visuals_vbox.addSpacing(10)
 
-        def create_toggle_button(text: str, setting_key: str) -> QPushButton:
+        # Group B: Visual Display (Label visibility toggles)
+        def create_toggle_btn(text, key):
+            """Creates a stylized toggle button for settings."""
             btn = QPushButton()
             btn.setCheckable(True)
-            current_val = self.settings_manager.get(setting_key, True)
+            val = self.settings_manager.get(key, True)
+            btn.setChecked(val)
+            btn.setText(f"☑ {text}" if val else f"☐ {text}")
+            btn.setStyleSheet(ss_active if val else ss_inactive)
 
-            # 1. Optik manuell setzen (kein Signal-Trigger!)
-            btn.setText(f"☑ {text}" if current_val else f"☐ {text}")
-            btn.setStyleSheet(_ss_active if current_val else _ss_inactive)
-
-            # 2. Internen Status setzen (da noch kein .connect erfolgt, wird kein Signal ausgelöst!)
-            btn.setChecked(current_val)
-
-            def _on_toggle_changed(checked: bool):
-                self.settings_manager.set(setting_key, checked)
+            def _on_toggled(checked):
+                """Updates setting and UI when button is toggled."""
+                self.settings_manager.set(key, checked)
                 self.settings_manager.request_save()
-                self._apply_label_settings() # Die teure Funktion wird NUR beim Klick aufgerufen
+                self._apply_label_settings()
                 btn.setText(f"☑ {text}" if checked else f"☐ {text}")
-                btn.setStyleSheet(_ss_active if checked else _ss_inactive)
+                btn.setStyleSheet(ss_active if checked else ss_inactive)
 
-            # 3. Erst JETZT die Verbindung herstellen für zukünftige Klicks
-            btn.toggled.connect(_on_toggle_changed)
+            btn.toggled.connect(_on_toggled)
             return btn
 
-        label_layout.addWidget(create_toggle_button("Show Index", "show_index"))
-        label_layout.addWidget(create_toggle_button("Show Filename", "show_filename"))
-        label_layout.addWidget(create_toggle_button("Show Notes", "show_notes"))
+        visuals_vbox.addWidget(create_toggle_btn("Show Index", "show_index"))
+        visuals_vbox.addWidget(create_toggle_btn("Show Filename", "show_filename"))
+        visuals_vbox.addWidget(create_toggle_btn("Show Notes", "show_notes"))
 
-        label_wa.setDefaultWidget(label_container)
-        menu.addAction(label_wa)
+        visuals_group.setDefaultWidget(visuals_container)
+        menu.addAction(visuals_group)
 
-        # --- UNDO LIMIT SECTION ---
-        undo_wa = QWidgetAction(menu)
-        undo_container = QWidget()
-        undo_container.setStyleSheet("background:#252525; border:1px solid #383838; border-radius:6px;")
-        undo_row = QHBoxLayout(undo_container)
-        undo_row.setContentsMargins(12, 6, 12, 6)
-        undo_row.setSpacing(8)
+        menu.addSeparator()
 
-        undo_lbl = QLabel("Undo limit")
-        undo_lbl.setStyleSheet("font-size:11px;color:#bbb;")
-        undo_spin = QSpinBox()
-        undo_spin.setMinimumHeight(30)
-        undo_spin.setRange(5, 1000)
-        undo_spin.setValue(self.settings_manager.get("undo_limit", 50))
-        undo_spin.setFixedWidth(60)
-        undo_spin.setButtonSymbols(QSpinBox.ButtonSymbols.PlusMinus)
+        # --- RESET ACTION (Standard QAction for consistency) ---
+        reset_action = menu.addAction("  ~  Reset all settings to defaults")
+        reset_action.triggered.connect(self._reset_settings)
+
+        # --- LOGIC FOR SYNCING SLIDERS/SPINS (Config Group) ---
+        def _sync_gap(val, s_spin, s_slider):
+            """Syncs gap slider and spinbox."""
+            s_spin.blockSignals(True)
+            s_spin.setValue(val)
+            s_spin.blockSignals(False)
+            s_slider.blockSignals(True)
+            s_slider.setValue(val)
+            s_slider.blockSignals(False)
+            self.current_spacing = val
+            self.flow_layout.setSpacing(val)
+            self.settings_manager.request_save()
+
+        def _sync_sz(val, s_spin, s_slider):
+            """Syncs scroll zone opacity slider and spinbox."""
+            s_spin.blockSignals(True)
+            s_spin.setValue(val)
+            s_spin.blockSignals(False)
+            s_slider.blockSignals(True)
+            s_slider.setValue(val)
+            s_slider.blockSignals(False)
+            self.settings_manager.set("scroll_zone_alpha", val)
+            self.settings_manager.request_save()
 
         def _sync_undo(val):
+            """Syncs undo limit to both settings and the undo stack."""
             undo_spin.blockSignals(True)
             undo_spin.setValue(val)
             undo_spin.blockSignals(False)
             self.settings_manager.set("undo_limit", val)
             self.settings_manager.request_save()
-            # Apply to the current stack immediately
             self.undo_stack.setUndoLimit(val)
 
+        slider.valueChanged.connect(lambda v: _sync_gap(v, spin_gap, slider))
+        spin_gap.valueChanged.connect(lambda v: _sync_gap(v, spin_gap, slider))
+        slider_sz.valueChanged.connect(lambda v: _sync_sz(v, spin_sz, slider_sz))
+        spin_sz.valueChanged.connect(lambda v: _sync_sz(v, spin_sz, slider_sz))
         undo_spin.valueChanged.connect(_sync_undo)
-        undo_row.addWidget(undo_lbl)
-        undo_row.addWidget(undo_spin)
-        undo_wa.setDefaultWidget(undo_container)
-        menu.addAction(undo_wa)
-
-        menu.addSeparator()
-
-        menu.addAction("  Reset all settings to defaults", self._reset_settings)
 
         btn = self.sender()
         if btn:

@@ -292,7 +292,6 @@ class ToolbarMixin:
         LABEL_WIDTH = 100
         SLIDER_WIDTH = 100
         SPIN_WIDTH = 45
-        # Total offset from the left edge for the spinbox: Label + Slider/Spacing + small gap
         CONTROL_X_OFFSET = LABEL_WIDTH + SLIDER_WIDTH + 10
 
         # --- SECTION 1: LAYOUT & SYSTEM CONFIG ---
@@ -323,12 +322,12 @@ class ToolbarMixin:
         gap_row.addWidget(lbl_gap)
         gap_row.addWidget(slider)
         gap_row.addWidget(spin_gap)
-        gap_row.addStretch()  # Fill remaining space to the right
+        gap_row.addStretch()
         config_vbox.addLayout(gap_row)
 
         # Scroll zone opacity (Slider + Spin)
         sz_row = QHBoxLayout()
-        lbl_sz = QLabel("Scroll Opacity")
+        lbl_sz = QLabel("Scroll zone opacity")
         lbl_sz.setFixedWidth(LABEL_WIDTH)
         lbl_sz.setStyleSheet("font-size:11px;color:#bbb;")
         slider_sz = QSlider(Qt.Orientation.Horizontal)
@@ -344,7 +343,7 @@ class ToolbarMixin:
         sz_row.addWidget(lbl_sz)
         sz_row.addWidget(slider_sz)
         sz_row.addWidget(spin_sz)
-        sz_row.addStretch()  # Fill remaining space to the right
+        sz_row.addStretch()
         config_vbox.addLayout(sz_row)
 
         # Undo limit (Aligned exactly with Spinboxes above)
@@ -361,7 +360,7 @@ class ToolbarMixin:
         undo_row.addWidget(lbl_undo)
         undo_row.addSpacing(CONTROL_X_OFFSET - LABEL_WIDTH)
         undo_row.addWidget(undo_spin)
-        undo_row.addStretch()     # Fill remaining space to the right
+        undo_row.addStretch()
         config_vbox.addLayout(undo_row)
 
         config_group.setDefaultWidget(config_container)
@@ -441,7 +440,7 @@ class ToolbarMixin:
         menu.addSeparator()
 
         # --- RESET ACTION (Standard QAction for consistency) ---
-        reset_action = menu.addAction("  ~  Reset all settings to defaults")
+        reset_action = menu.addAction(" ~  Reset all settings to defaults")
         reset_action.triggered.connect(self._reset_settings)
 
         # --- LOGIC FOR SYNCING SLIDERS/SPINS (Config Group) ---

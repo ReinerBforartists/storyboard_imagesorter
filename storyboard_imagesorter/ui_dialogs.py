@@ -107,7 +107,7 @@ class ExportPreviewDialog(QDialog):
         self.cards = cards
         self._folder = initial_dir
         self.setWindowTitle("Export Images")
-        self.resize(540, 520)
+        self.setFixedWidth(500)  # Standardized width to match ContactSheetDialog
         self.setStyleSheet("background:#1e1e1e;color:#d0d0d0;")
         lay = QVBoxLayout(self)
         lay.setSpacing(8)
@@ -115,26 +115,23 @@ class ExportPreviewDialog(QDialog):
         # ── Prefix row ───────────────────────────────────────────────────────
         prefix_row = QHBoxLayout()
         prefix_lbl = QLabel("Filename prefix:")
-        prefix_lbl.setFixedWidth(110)
+        prefix_lbl.setFixedWidth(120)
         prefix_row.addWidget(prefix_lbl)
         self.prefix_edit = QLineEdit(initial_prefix)
         self.prefix_edit.setStyleSheet(_FOLDER_ROW_STYLE)
         prefix_row.addWidget(self.prefix_edit)
         lay.addLayout(prefix_row)
 
-        # ── Mapping checkbox ──────────────────────────────────────────────────
-        options_row = QHBoxLayout()
-        self.mapping_cb = QCheckBox("Include filename mapping (.txt)")
-        self.mapping_cb.setChecked(mapping_enabled)
-        self.mapping_cb.setStyleSheet(
-            "QCheckBox { color: #bbb; font-size: 12px; spacing: 8px; }"
-            "QCheckBox::indicator { width: 18px; height: 18px; border-radius: 3px;"
-            " background: #2a2a2a; border: 1px solid #404040; }"
-            "QCheckBox::indicator:checked { background: #2d6fab; border: 1px solid #4d8fcc; }"
-        )
-        options_row.addWidget(self.mapping_cb)
-        options_row.addStretch()
-        lay.addLayout(options_row)
+        # ── Mapping Toggle Button (Full Width like in other dialogs) ───────
+        self.mapping_btn = QPushButton()
+        self.mapping_btn.setCheckable(True)
+        self.mapping_btn.setChecked(mapping_enabled)
+        self._update_mapping_button_style(mapping_enabled)
+        self.mapping_btn.toggled.connect(self._on_mapping_toggled)
+        lay.addWidget(self.mapping_btn)
+
+        # --- Whitespace after settings section ---
+        lay.addSpacing(10)
 
         # ── Preview table ─────────────────────────────────────────────────────
         info = QLabel(f"{len(cards)} images will be exported with these names:")
@@ -143,12 +140,8 @@ class ExportPreviewDialog(QDialog):
 
         self.table = QTableWidget(len(cards), 2)
         self.table.setHorizontalHeaderLabels(["New name", "Original file"])
-        self.table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.Stretch
-        )
+        self.table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setStyleSheet(
@@ -159,9 +152,12 @@ class ExportPreviewDialog(QDialog):
         )
         lay.addWidget(self.table)
 
+        # --- Whitespace after preview table ---
+        lay.addSpacing(15)
+
         # ── Folder row ────────────────────────────────────────────────────────
         folder_lbl = QLabel("Export folder:")
-        folder_lbl.setStyleSheet("color:#bbb;font-size:12px;margin-top:4px;")
+        folder_lbl.setStyleSheet("color:#bbb;font-size:12px;")
         lay.addWidget(folder_lbl)
         folder_row, self._folder_edit, _ = _make_folder_row(self, initial_dir)
         lay.addLayout(folder_row)
@@ -171,6 +167,9 @@ class ExportPreviewDialog(QDialog):
         self._collision_lbl.setWordWrap(True)
         self._collision_lbl.setVisible(False)
         lay.addWidget(self._collision_lbl)
+
+        # --- Whitespace before final action buttons ---
+        lay.addSpacing(10)
 
         # ── Buttons row ───────────────────────────────────────────────────────
         btn_row = QHBoxLayout()
@@ -186,7 +185,7 @@ class ExportPreviewDialog(QDialog):
         btn_row.addWidget(self._export_btn)
         lay.addLayout(btn_row)
 
-        # ── Debounce timer ────────────────────────────────────────────────────
+        # ── Debounce timer & initial load ─────────────────────────────────────
         self._update_timer = QTimer()
         self._update_timer.setSingleShot(True)
         self._update_timer.timeout.connect(self._refresh)
@@ -197,7 +196,29 @@ class ExportPreviewDialog(QDialog):
         # Initial population
         self._refresh()
 
+    def _on_mapping_toggled(self, checked):
+        """Handles the button toggle and updates its visual state."""
+        self._update_mapping_button_style(checked)
+
+    def _update_mapping_button_style(self, checked):
+        """Applies consistent styling to the mapping toggle button (Full Width)."""
+        status = "☑" if checked else "☐"
+        text = f"{status}  Include filename mapping (.txt)"
+        self.mapping_btn.setText(text)
+
+        if checked:
+            self.mapping_btn.setStyleSheet(
+                "QPushButton{background:#172d4e;color:#4d8fcc;"
+                "border:1px solid #2d6fab;padding:5px 10px;text-align:left;}"
+            )
+        else:
+            self.mapping_btn.setStyleSheet(
+                "QPushButton{background:#2a2a2a;color:#eee;"
+                "border:1px solid #383838;padding:5px 10px;text-align:left;}"
+            )
+
     def _trigger_update(self):
+        """Starts/restarts the debounce timer."""
         self._update_timer.start(400)
 
     def _refresh(self):
@@ -249,7 +270,9 @@ class ExportPreviewDialog(QDialog):
         return self._folder_edit.text().strip()
 
     def get_mapping_enabled(self):
-        return self.mapping_cb.isChecked()
+        """Returns the current state of the mapping toggle."""
+        return self.mapping_btn.isChecked()
+
 
 # ─── CONTACT SHEET DIALOG ─────────────────────────────────────────────────────
 
@@ -279,7 +302,7 @@ class ContactSheetDialog(QDialog):
         self.cards = cards
         self._initial_dir = initial_dir
         self.setWindowTitle("Export Contact Sheet")
-        self.setMinimumWidth(400)
+        self.setFixedWidth(500)  # Standardized width
         self.setStyleSheet("background:#1e1e1e;color:#d0d0d0;")
 
         # Setup Debounce Timer for consistency across dialogs

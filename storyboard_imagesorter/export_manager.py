@@ -294,7 +294,8 @@ class ExportManager:
             init_notes=self.saved_contact_notes,
             init_index=self.settings_manager.get("contact_show_index", True),
             init_mode=self.settings_manager.get("contact_mode", "grid"),
-            init_per_page=self.settings_manager.get("contact_images_per_page", 24)
+            init_grid_per_page=self.saved_contact_grid_per_page,
+            init_list_per_page=self.saved_contact_list_per_page
         )
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return
@@ -309,7 +310,10 @@ class ExportManager:
 
         self.settings_manager.set("contact_export_prefix", prefix)
         self.settings_manager.set("contact_mode", dlg.get_mode())
-        self.settings_manager.set("contact_images_per_page", dlg.get_per_page())
+        self.saved_contact_grid_per_page = dlg.get_grid_per_page()
+        self.saved_contact_list_per_page = dlg.get_list_per_page()
+        self.settings_manager.set("contact_grid_per_page", self.saved_contact_grid_per_page)
+        self.settings_manager.set("contact_list_per_page", self.saved_contact_list_per_page)
         self.settings_manager.set("contact_show_index", dlg.get_index_enabled())
         self._save_settings()
 
@@ -325,7 +329,7 @@ class ExportManager:
         show_lbl = self.saved_contact_labels
         show_note = self.saved_contact_notes
         show_index = dlg.get_index_enabled()
-        per_page = dlg.get_per_page()
+        per_page = dlg.get_grid_per_page() if mode == "grid" else dlg.get_list_per_page()
 
         pad = 10
         font = QFont("Arial", 9)

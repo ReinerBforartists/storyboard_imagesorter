@@ -176,7 +176,8 @@ class ContactSheetDialog(QDialog):
         init_notes=True,
         init_index=True,
         init_mode="grid",
-        init_per_page=24
+        init_grid_per_page=20,
+        init_list_per_page=10
     ):
         super().__init__(parent)
         self.cards = cards
@@ -239,11 +240,31 @@ class ContactSheetDialog(QDialog):
         grid_row1.addWidget(self.cols_spin)
         grid_lay.addLayout(grid_row1)
 
+        grid_row2 = QHBoxLayout()
+        grid_row2.addWidget(QLabel("Images per page:"))
+        self.grid_per_page_spin = QSpinBox()
+        self.grid_per_page_spin.setRange(1, 500)
+        self.grid_per_page_spin.setValue(init_grid_per_page)
+        self.grid_per_page_spin.setStyleSheet(spin_style)
+        grid_row2.addWidget(self.grid_per_page_spin)
+        grid_row2.addStretch()
+        grid_lay.addLayout(grid_row2)
+
         # Page 1: List Options
         list_page = QWidget()
         list_lay = QVBoxLayout(list_page)
         list_lay.setContentsMargins(0, 0, 0, 0)
         list_lay.addWidget(QLabel("Optimized for long notes and readability."))
+
+        list_row1 = QHBoxLayout()
+        list_row1.addWidget(QLabel("Images per page:"))
+        self.list_per_page_spin = QSpinBox()
+        self.list_per_page_spin.setRange(1, 500)
+        self.list_per_page_spin.setValue(init_list_per_page)
+        self.list_per_page_spin.setStyleSheet(spin_style)
+        list_row1.addWidget(self.list_per_page_spin)
+        list_row1.addStretch()
+        list_lay.addLayout(list_row1)
 
         self.options_stack.addWidget(grid_page)  # Index 0
         self.options_stack.addWidget(list_page)  # Index 1
@@ -253,17 +274,6 @@ class ContactSheetDialog(QDialog):
         common_group = QFrame()
         common_group.setStyleSheet("background:#252525; border-radius:6px; padding:10px;")
         common_lay = QVBoxLayout(common_group)
-
-        # Pagination
-        page_row = QHBoxLayout()
-        page_row.addWidget(QLabel("Images per page:"))
-        self.per_page_spin = QSpinBox()
-        self.per_page_spin.setRange(1, 500)
-        self.per_page_spin.setValue(init_per_page)
-        self.per_page_spin.setStyleSheet(spin_style)
-        page_row.addWidget(self.per_page_spin)
-        page_row.addStretch()
-        common_lay.addLayout(page_row)
 
         # Thumbnail Size
         thumb_row = QHBoxLayout()
@@ -330,7 +340,8 @@ class ContactSheetDialog(QDialog):
         # Connect all inputs to the debounce trigger for consistency
         self.prefix_edit.textChanged.connect(self._trigger_update)
         self.cols_spin.valueChanged.connect(self._trigger_update)
-        self.per_page_spin.valueChanged.connect(self._trigger_update)
+        self.grid_per_page_spin.valueChanged.connect(self._trigger_update)
+        self.list_per_page_spin.valueChanged.connect(self._trigger_update)
         self.thumb_spin.valueChanged.connect(self._trigger_update)
 
     def _trigger_update(self):
@@ -382,8 +393,11 @@ class ContactSheetDialog(QDialog):
     def get_thumb_size(self):
         return self.thumb_spin.value()
 
-    def get_per_page(self):
-        return self.per_page_spin.value()
+    def get_grid_per_page(self):
+        return self.grid_per_page_spin.value()
+
+    def get_list_per_page(self):
+        return self.list_per_page_spin.value()
 
     def get_labels_enabled(self):
         return self.label_cb.isChecked()

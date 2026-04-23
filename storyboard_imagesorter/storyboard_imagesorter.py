@@ -104,6 +104,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
         # FIX: Install event filter on the window to catch clicks even in empty areas
         self.installEventFilter(self)
+        QApplication.instance().installEventFilter(self)
 
         saved_zoom = self.settings_manager.get("zoom_pct")
         if saved_zoom in constants.ZOOM_STEPS:
@@ -625,24 +626,36 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Type.MouseButtonPress:
-            self.stash_zone.set_active(False)
+            if obj is self:
+                self.stash_zone.set_active(False)
 
         if event.type() == QEvent.Type.KeyPress:
-            # Check if a modal dialog (like Lightbox) is active.
-            if QApplication.activeModalWidget() is not None:
-                return False
-
+            # Intercept Tab before Qt's focus-navigation consumes it.
+            # Must run at app level (QApplication filter) so child widgets never see it.
             key = event.key()
             mods = event.modifiers()
             is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
             is_shift = bool(mods & Qt.KeyboardModifier.ShiftModifier)
-            in_stash = self.stash_zone.container.hasFocus()
 
-            # Check if we are currently typing in a text field
+            if key in (Qt.Key.Key_Tab, Qt.Key.Key_Backtab) and not is_ctrl:
+                if QApplication.activeModalWidget() is None:
+                    focus_widget = QApplication.focusWidget()
+                    if not isinstance(focus_widget, QTextEdit):
+                        self._toggle_stash()
+                        return True
+
+            # Ignore events not targeting the main window from here on
+            if obj is not self:
+                return False
+
+            if QApplication.activeModalWidget() is not None:
+                return False
+
+            in_stash = self.stash_zone.container.hasFocus()
             focus_widget = QApplication.focusWidget()
             is_typing = isinstance(focus_widget, QTextEdit)
 
-            # --- 1. Global Hotkeys (Always active, even when typing) ---
+            # --- 1. Global hotkeys (active even while typing) ---
             if is_ctrl and key == Qt.Key.Key_Z:
                 self.undo_stack.undo()
                 return True
@@ -653,18 +666,11 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                 self.undo_stack.redo()
                 return True
 
-            # --- 2. Typing Protection ---
-            # If the user is typing, we must NOT trigger application hotkeys.
-            # We return False so the QTextEdit can handle its own characters.
+            # --- 2. Typing guard ---
             if is_typing:
                 return False
 
-            # --- 3. Application Hotkeys (Only if NOT typing) ---
-
-            # Navigation / UI Toggles
-            if key == Qt.Key.Key_Tab:
-                self._toggle_stash()
-                return True
+            # --- 3. Application hotkeys (not while typing) ---
             if key == Qt.Key.Key_B and not is_ctrl:
                 self._toggle_sidebar()
                 return True
@@ -720,11 +726,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
             # Main area hotkeys
             else:
-                # Spacebar logic for Lightbox
                 if key == Qt.Key.Key_Space:
                     self._open_lightbox()
                     return True
-
                 if key == Qt.Key.Key_Home:
                     self.scroll.verticalScrollBar().setValue(0)
                     return True
@@ -746,7 +750,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                     self._scroll_to_selected()
                     return True
 
-                # Movement keys
                 if not is_ctrl:
                     if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
                         self._move_selected(-1)
@@ -754,7 +757,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                     if key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
                         self._move_selected(1)
                         return True
-                else: # is_ctrl
+                else:
                     if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
                         self._move_selection_absolute("start")
                         return True

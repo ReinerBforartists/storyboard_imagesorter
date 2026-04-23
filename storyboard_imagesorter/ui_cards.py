@@ -288,6 +288,7 @@ class ThumbnailCard(QFrame):
             self.toggle_btn.setText("🖼 Show Image")
 
         self._apply_style()
+        # Always refresh visibility to ensure the button is present if in note mode
         self.set_label_visibility(
             self._settings_index_visible,
             self._settings_name_visible,
@@ -314,12 +315,21 @@ class ThumbnailCard(QFrame):
 
         self.idx_label.setVisible(show_index)
         self.name_label.setVisible(show_filename)
-        self.toggle_btn.setVisible(show_notes)
+
+        # The toggle button must ALWAYS be visible if we are currently in note mode,
+        # even if the user has disabled notes in settings (to allow switching back).
+        # Otherwise, if they are in note mode and disable notes, they get stuck.
+        if self._is_note_mode:
+            self.toggle_btn.setVisible(True)
+        else:
+            self.toggle_btn.setVisible(show_notes)
 
         has_text = len(self.note_editor.toPlainText().strip()) > 0
-        # Counter visibility depends on notes setting and text presence
-        counter_visible = (show_notes or self._is_note_mode) and \
-                          (has_text or self._is_note_mode)
+
+        # The counter should only be visible if notes are enabled globally AND
+        # (we are in note mode OR there is text and notes are enabled).
+        # If show_notes is False, the counter must stay hidden.
+        counter_visible = show_notes and (self._is_note_mode or has_text)
         self.char_counter.setVisible(counter_visible)
 
         scale = 1.0 + ((self._size / 200.0) - 1.0) * 0.6
@@ -343,8 +353,8 @@ class ThumbnailCard(QFrame):
         self.main_layout.activate()
 
         # Dynamic height calculation to prevent empty space when labels are hidden
-        if not (show_index or show_filename or show_notes):
-            # Shrink card to image size + minimal margin if no labels are visible
+        if not (show_index or show_filename or show_notes) and not self._is_note_mode:
+            # Shrink card to image size + minimal margin if no labels/notes mode active
             required_height = self._size + 10
         else:
             # Use layout hint + buffer for a breathable look when labels are active

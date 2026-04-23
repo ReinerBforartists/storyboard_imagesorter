@@ -100,7 +100,7 @@ class ToolbarMixin:
         body_layout.addWidget(self.workspace, 1)
         main_layout.addLayout(body_layout, 1)
 
-        QApplication.instance().installEventFilter(self)
+        self.installEventFilter(self)
         self._watcher = QFileSystemWatcher(self)
         self._watcher.fileChanged.connect(self._on_file_changed)
         QShortcut(QKeySequence(Qt.Key.Key_Space), self).activated.connect(self._open_lightbox)

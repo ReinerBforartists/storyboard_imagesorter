@@ -201,7 +201,7 @@ class ThumbnailCard(QFrame):
         raw_text = self.note_editor.toPlainText()
 
         # 1. Handle Line Length Limit (Auto-wrap long lines at 100 chars)
-        lines = raw_text.splitlines()
+        lines = raw_text.split("\n")
         sanitized_lines = []
 
         for line in lines:

@@ -79,8 +79,8 @@ class ThumbnailCard(QFrame):
         self._settings_notes_visible = True
 
     def _setup_ui(self):
-        # Increased the fixed height buffer from 80 to 110 to prevent text squashing
-        self.setFixedSize(self._size + 16, self._size + 110)
+        # Increased the fixed height buffer from 80 to 100 to prevent text squashing
+        self.setFixedSize(self._size + 16, self._size + 100)
         self._apply_style()
 
         self.main_layout = QVBoxLayout(self)
@@ -290,7 +290,8 @@ class ThumbnailCard(QFrame):
         self._idx_font_size = max(8, int(10 * scale))
         self._name_font_size = self._idx_font_size
 
-        base_label_style = "background-color: #2a2a2a; color: white;"
+        # Added 'border: none;' to ensure no visual noise from default styles
+        base_label_style = "background-color: #2a2a2a; color: white; border: none;"
 
         self.idx_label.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
         self.char_counter.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
@@ -305,9 +306,8 @@ class ThumbnailCard(QFrame):
         )
 
         self.main_layout.activate()
-        # Instead of just using sizeHint, we add a fixed buffer to the image size
-        # to ensure there is always enough room for labels and buttons.
-        required_height = self._size + 110
+        # Use your preferred buffer value here (e.g., 100)
+        required_height = self._size + 100
         self.setFixedSize(self._size + 16, int(required_height))
 
         current_color = self.sorter.temp_colors.get(self.path)

@@ -70,7 +70,7 @@ class ThumbnailCard(QFrame):
         self._last_valid_text = ""
 
         self._idx_font_size = 10
-        self._name_font_size = 9
+        self._name_font_size = 10  # Synchronized with index
 
         self._setup_ui()
 
@@ -79,7 +79,8 @@ class ThumbnailCard(QFrame):
         self._settings_notes_visible = True
 
     def _setup_ui(self):
-        self.setFixedSize(self._size + 16, self._size + 64)
+        # Increased the fixed height buffer from 80 to 110 to prevent text squashing
+        self.setFixedSize(self._size + 16, self._size + 110)
         self._apply_style()
 
         self.main_layout = QVBoxLayout(self)
@@ -154,10 +155,10 @@ class ThumbnailCard(QFrame):
 
         # --- Actions Section ---
         self.toggle_btn = QPushButton("📝 + Add Note")
-        self.toggle_btn.setFixedHeight(34)
+        self.toggle_btn.setFixedHeight(40)  # Increased height for readability
         self.toggle_btn.setStyleSheet(
             "QPushButton{background:#333; color:#aaa; border:1px solid #444; "
-            "border-radius:3px; font-size:9px; padding:2px 6px; text-align:left;}"
+            "border-radius:3px; font-size:10px; padding:2px 6px; text-align:left;}"
             "QPushButton:hover{background:#444; color:#fff;}"
         )
         self.toggle_btn.clicked.connect(self.toggle_mode)
@@ -168,7 +169,7 @@ class ThumbnailCard(QFrame):
         self.load_thumbnail()
 
     def _on_text_changed(self):
-        """Handles text input, enforces hard limits via revert-logic, and updates counter."""
+        """Handles text input, enforces hard limits via revert-logic, and updates the counter."""
         current_cursor = self.note_editor.textCursor()
         current_pos = current_cursor.position()
         full_text = self.note_editor.toPlainText()
@@ -176,15 +177,15 @@ class ThumbnailCard(QFrame):
 
         is_valid = True
 
-        # 1. Validate Line 1 limit
+        # 1. Validate Line 1 limit (100 chars)
         if len(lines) > 0 and len(lines[0]) > self._LINE1_LIMIT:
             is_valid = False
 
-        # 2. Validate Max Lines limit
+        # 2. Validate Max Lines limit (20 lines)
         if len(lines) > self._MAX_LINES:
             is_valid = False
 
-        # 3. Validate Total Body character limit
+        # 3. Validate Total Body character limit (1000 chars)
         if len(full_text) > self._BODY_LIMIT:
             is_valid = False
 
@@ -193,18 +194,16 @@ class ThumbnailCard(QFrame):
             self.note_editor.blockSignals(True)
             self.note_editor.setPlainText(self._last_valid_text)
 
-            # Restore cursor to its previous position (capped by new text length)
             new_cursor = self.note_editor.textCursor()
             new_cursor.setPosition(min(current_pos, len(self._last_valid_text)))
             self.note_editor.setTextCursor(new_cursor)
             self.note_editor.blockSignals(False)
-            # Update local variables to match the reverted state
             full_text = self._last_valid_text
         else:
             # ACCEPT: If valid, update the last known good text
             self._last_valid_text = full_text
 
-        # Update UI Counter (always based on current/reverted text)
+        # Update UI Counter
         current_len = len(full_text)
         self.char_counter.setText(f"({current_len} / {self._BODY_LIMIT})")
 
@@ -270,10 +269,8 @@ class ThumbnailCard(QFrame):
         """Sets note text and updates the counter immediately."""
         self.note_editor.blockSignals(True)
         self.note_editor.setPlainText(text if text else "")
-        # Sync our tracker so that manual setting doesn't trigger a revert
         self._last_valid_text = text if text else ""
         self.note_editor.blockSignals(False)
-        # Trigger the logic to refresh UI/Counter
         self._on_text_changed()
 
     def set_label_visibility(self, show_index: bool, show_filename: bool, show_notes: bool):
@@ -289,8 +286,9 @@ class ThumbnailCard(QFrame):
         self.char_counter.setVisible((show_notes or self._is_note_mode) and (has_text or self._is_note_mode))
 
         scale = 1.0 + ((self._size / 200.0) - 1.0) * 0.6
+        # Both index and name use the same base scale
         self._idx_font_size = max(8, int(10 * scale))
-        self._name_font_size = max(7, int(9 * scale))
+        self._name_font_size = self._idx_font_size
 
         base_label_style = "background-color: #2a2a2a; color: white;"
 
@@ -298,19 +296,24 @@ class ThumbnailCard(QFrame):
         self.char_counter.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
         self.name_label.setStyleSheet(f"{base_label_style} font-size:{self._name_font_size}px;")
 
+        # Scaled button font
+        btn_fs = max(9, int(10 * scale))
         self.toggle_btn.setStyleSheet(
             f"QPushButton{{background:#333; color:#aaa; border:1px solid #444; "
-            f"border-radius:3px; font-size:{max(8, int(9 * scale))}px; padding:2px 6px; text-align:left;}}"
+            f"border-radius:3px; font-size:{btn_fs}px; padding:2px 6px; text-align:left;}}"
             f"QPushButton:hover{{background:#444; color:#fff;}}"
         )
 
         self.main_layout.activate()
-        required_height = self.main_layout.sizeHint().height()
+        # Instead of just using sizeHint, we add a fixed buffer to the image size
+        # to ensure there is always enough room for labels and buttons.
+        required_height = self._size + 110
         self.setFixedSize(self._size + 16, int(required_height))
 
         current_color = self.sorter.temp_colors.get(self.path)
         if current_color:
             self.set_color(current_color)
+
 
     def update_size(self, size: int):
         if self._size == size:
@@ -487,7 +490,6 @@ class ThumbnailCard(QFrame):
 
         drag.setHotSpot(QPoint(42, 42))
         drag.exec(Qt.DropAction.MoveAction)
-
 
 
 

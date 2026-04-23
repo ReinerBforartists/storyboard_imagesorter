@@ -630,18 +630,39 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                 self.stash_zone.set_active(False)
 
         if event.type() == QEvent.Type.KeyPress:
-            # Intercept Tab before Qt's focus-navigation consumes it.
-            # Must run at app level (QApplication filter) so child widgets never see it.
             key = event.key()
             mods = event.modifiers()
             is_ctrl = bool(mods & Qt.KeyboardModifier.ControlModifier)
             is_shift = bool(mods & Qt.KeyboardModifier.ShiftModifier)
 
+            # --- 1. Global hotkeys (active even while typing) ---
+            if is_ctrl and key == Qt.Key.Key_Z:
+                self.undo_stack.undo()
+                return True
+            if is_ctrl and key == Qt.Key.Key_Y:
+                self.undo_stack.redo()
+                return True
+            if is_ctrl and is_shift and key == Qt.Key.Key_Z:
+                self.undo_stack.redo()
+                return True
+
+            # Intercept Tab before Qt's focus-navigation consumes it
             if key in (Qt.Key.Key_Tab, Qt.Key.Key_Backtab) and not is_ctrl:
                 if QApplication.activeModalWidget() is None:
-                    focus_widget = QApplication.focusWidget()
-                    if not isinstance(focus_widget, QTextEdit):
+                    if not isinstance(QApplication.focusWidget(), QTextEdit):
                         self._toggle_stash()
+                        return True
+
+            # Intercept arrow keys before ScrollArea consumes them for scrolling
+            if key in (Qt.Key.Key_Left, Qt.Key.Key_Up, Qt.Key.Key_Right, Qt.Key.Key_Down):
+                if QApplication.activeModalWidget() is None:
+                    if not isinstance(QApplication.focusWidget(), QTextEdit):
+                        if not is_ctrl:
+                            direction = -1 if key in (Qt.Key.Key_Left, Qt.Key.Key_Up) else 1
+                            self._move_selected(direction)
+                        else:
+                            target = "start" if key in (Qt.Key.Key_Left, Qt.Key.Key_Up) else "end"
+                            self._move_selection_absolute(target)
                         return True
 
             # Ignore events not targeting the main window from here on
@@ -654,17 +675,6 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             in_stash = self.stash_zone.container.hasFocus()
             focus_widget = QApplication.focusWidget()
             is_typing = isinstance(focus_widget, QTextEdit)
-
-            # --- 1. Global hotkeys (active even while typing) ---
-            if is_ctrl and key == Qt.Key.Key_Z:
-                self.undo_stack.undo()
-                return True
-            if is_ctrl and key == Qt.Key.Key_Y:
-                self.undo_stack.redo()
-                return True
-            if is_ctrl and is_shift and key == Qt.Key.Key_Z:
-                self.undo_stack.redo()
-                return True
 
             # --- 2. Typing guard ---
             if is_typing:
@@ -750,23 +760,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                     self._scroll_to_selected()
                     return True
 
-                if not is_ctrl:
-                    if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
-                        self._move_selected(-1)
-                        return True
-                    if key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
-                        self._move_selected(1)
-                        return True
-                else:
-                    if key in (Qt.Key.Key_Left, Qt.Key.Key_Up):
-                        self._move_selection_absolute("start")
-                        return True
-                    if key in (Qt.Key.Key_Right, Qt.Key.Key_Down):
-                        self._move_selection_absolute("end")
-                        return True
-
         return super().eventFilter(obj, event)
-
 
     def _move_selected(self, direction):
         sel = [i for i, c in enumerate(self.cards) if c._selected]

@@ -20,7 +20,7 @@
 import os
 from PyQt6.QtWidgets import (
     QWidget, QFrame, QVBoxLayout, QLabel, QPushButton,
-    QSizePolicy, QStackedWidget, QTextEdit, QApplication,
+    QSizePolicy, QStackedWidget, QTextEdit, QApplication, QHBoxLayout
 )
 
 from PyQt6.QtGui import QPixmap, QDrag, QPainter
@@ -43,6 +43,7 @@ class ThumbnailCard(QFrame):
 
     def __init__(self, path, index, size, thread_pool, sorter):
         super().__init__()
+        # Basic properties
         self.path = path
         self.index = index
         self._size = size
@@ -72,15 +73,18 @@ class ThumbnailCard(QFrame):
         self._idx_font_size = 10
         self._name_font_size = 10  # Synchronized with index
 
-        self._setup_ui()
-
+        # CRITICAL: Initialize settings attributes BEFORE calling _setup_ui
+        # to prevent AttributeError during initial construction.
         self._settings_index_visible = True
         self._settings_name_visible = True
         self._settings_notes_visible = True
 
+        self._setup_ui()
+
     def _setup_ui(self):
-        # Increased the fixed height buffer from 80 to 100 to prevent text squashing
-        self.setFixedSize(self._size + 16, self._size + 100)
+        """Sets up the initial UI components for the thumbnail card."""
+        # Initial fixed size setup (will be refined by set_label_visibility)
+        self.setFixedSize(self._size + 16, self._size + 130)
         self._apply_style()
 
         self.main_layout = QVBoxLayout(self)
@@ -134,7 +138,6 @@ class ThumbnailCard(QFrame):
         self.main_layout.addWidget(self.color_bar)
 
         # --- Text Labels Section (Solid Dark Grey) ---
-        from PyQt6.QtWidgets import QHBoxLayout
         self.idx_row = QHBoxLayout()
         self.idx_row.setSpacing(5)
         self.idx_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -167,6 +170,13 @@ class ThumbnailCard(QFrame):
         # Initialize stack height correctly
         self.stack.setFixedHeight(self._size)
         self.load_thumbnail()
+
+        # Trigger initial visibility and size calculation to apply dynamic logic
+        self.set_label_visibility(
+            self._settings_index_visible,
+            self._settings_name_visible,
+            self._settings_notes_visible
+        )
 
     def _on_text_changed(self):
         """Handles text input, enforces hard limits via revert-logic, and updates the counter."""
@@ -217,6 +227,7 @@ class ThumbnailCard(QFrame):
         self._update_button_preview(full_text.strip())
 
     def _update_button_preview(self, text):
+        """Updates the toggle button text based on note content."""
         if not text:
             self.toggle_btn.setText("📝 + Add Note")
             return
@@ -246,6 +257,7 @@ class ThumbnailCard(QFrame):
             self.toggle_btn.setText(display_line1)
 
     def toggle_mode(self):
+        """Switches between image view and note editing mode."""
         if self._is_note_mode:
             self._is_note_mode = False
             self.stack.setCurrentIndex(0)
@@ -274,6 +286,11 @@ class ThumbnailCard(QFrame):
         self._on_text_changed()
 
     def set_label_visibility(self, show_index: bool, show_filename: bool, show_notes: bool):
+        """
+        Sets the visibility of labels and adjusts card height dynamically.
+        If all labels are hidden, the card shrinks to the image size.
+        Otherwise, it uses the layout's size hint with a small buffer.
+        """
         self._settings_index_visible = show_index
         self._settings_name_visible = show_filename
         self._settings_notes_visible = show_notes
@@ -283,21 +300,22 @@ class ThumbnailCard(QFrame):
         self.toggle_btn.setVisible(show_notes)
 
         has_text = len(self.note_editor.toPlainText().strip()) > 0
-        self.char_counter.setVisible((show_notes or self._is_note_mode) and (has_text or self._is_note_mode))
+        # Counter visibility depends on notes setting and text presence
+        counter_visible = (show_notes or self._is_note_mode) and \
+                          (has_text or self._is_note_mode)
+        self.char_counter.setVisible(counter_visible)
 
         scale = 1.0 + ((self._size / 200.0) - 1.0) * 0.6
-        # Both index and name use the same base scale
         self._idx_font_size = max(8, int(10 * scale))
         self._name_font_size = self._idx_font_size
 
-        # Added 'border: none;' to ensure no visual noise from default styles
+        # 'border: none;' removes visual noise around labels
         base_label_style = "background-color: #2a2a2a; color: white; border: none;"
 
         self.idx_label.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
         self.char_counter.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
         self.name_label.setStyleSheet(f"{base_label_style} font-size:{self._name_font_size}px;")
 
-        # Scaled button font
         btn_fs = max(9, int(10 * scale))
         self.toggle_btn.setStyleSheet(
             f"QPushButton{{background:#333; color:#aaa; border:1px solid #444; "
@@ -306,16 +324,23 @@ class ThumbnailCard(QFrame):
         )
 
         self.main_layout.activate()
-        # Use your preferred buffer value here (e.g., 100)
-        required_height = self._size + 100
+
+        # Dynamic height calculation to prevent empty space when labels are hidden
+        if not (show_index or show_filename or show_notes):
+            # Shrink card to image size + minimal margin if no labels are visible
+            required_height = self._size + 10
+        else:
+            # Use layout hint + buffer for a breathable look when labels are active
+            required_height = self.main_layout.sizeHint().height() + 15
+
         self.setFixedSize(self._size + 16, int(required_height))
 
         current_color = self.sorter.temp_colors.get(self.path)
         if current_color:
             self.set_color(current_color)
 
-
     def update_size(self, size: int):
+        """Resizes the card and its elements."""
         if self._size == size:
             return
         self._size = size
@@ -344,8 +369,10 @@ class ThumbnailCard(QFrame):
         )
 
     def load_thumbnail(self, force=False):
+        """Loads the image thumbnail using a worker thread."""
         if not force:
-            if (self._source_image and not self._source_image.isNull()) or self._is_loading:
+            if (self._source_image and not self._source_image.isNull()) or \
+               self._is_loading:
                 return
 
         if self._worker:
@@ -362,6 +389,7 @@ class ThumbnailCard(QFrame):
         self.thread_pool.start(self._worker)
 
     def unload_thumbnail(self):
+        """Unloads the thumbnail to save memory."""
         if self._worker:
             self._worker.cancelled = True
             self._worker = None
@@ -376,6 +404,7 @@ class ThumbnailCard(QFrame):
             pass
 
     def _on_loaded(self, path, image, load_id):
+        """Callback when the thumbnail loading is finished."""
         if sip.isdeleted(self):
             return
         if load_id != self._load_id:
@@ -392,6 +421,7 @@ class ThumbnailCard(QFrame):
             pass
 
     def mark_changed(self, changed: bool):
+        """Marks the card as having a modified file on disk."""
         self._changed = changed
         self.reload_btn.setVisible(changed)
         if changed:
@@ -403,11 +433,13 @@ class ThumbnailCard(QFrame):
             self._apply_style()
 
     def _do_reload(self):
+        """Reloads the image thumbnail."""
         self._source_image = None
         self.load_thumbnail()
         self.mark_changed(False)
 
     def _apply_style(self):
+        """Applies the background and border style based on state."""
         if self._drag_over:
             s = "background:#1e3d6e;border:2px solid #4d8fcc;border-radius:5px;"
         elif self._selected:
@@ -419,10 +451,12 @@ class ThumbnailCard(QFrame):
             self.setStyleSheet(s)
 
     def set_selected(self, sel):
+        """Sets the selection state of the card."""
         self._selected = sel
         self._apply_style()
 
     def set_color(self, color_hex: str | None):
+        """Sets the color accent bar for the card."""
         self._color = color_hex
         if color_hex:
             self.color_bar.setStyleSheet(f"background-color: {color_hex}; border: none;")
@@ -430,33 +464,40 @@ class ThumbnailCard(QFrame):
             self.color_bar.setStyleSheet("background-color: #404040; border: none;")
 
     def update_index(self, index):
+        """Updates the displayed index label."""
         self.index = index
         self.idx_label.setText(str(index + 1))
 
     def mousePressEvent(self, e):
+        """Handles mouse press events for drag and click logic."""
         if e.button() == Qt.MouseButton.LeftButton:
             if self.note_editor.underMouse():
                 return
             self.drag_start_pos = e.pos()
 
     def mouseReleaseEvent(self, e):
+        """Handles mouse release events to trigger selection."""
         if e.button() == Qt.MouseButton.LeftButton:
             if self.note_editor.hasFocus():
                 return
             self.clicked.emit(self.index)
 
     def mouseDoubleClickEvent(self, e):
+        """Handles double click to open the image in system viewer."""
         if e.button() == Qt.MouseButton.LeftButton:
             if self.note_editor.underMouse():
                 return
             self.sorter._open_image(self.path)
 
     def mouseMoveEvent(self, e):
+        """Handles drag and drop logic for selecting multiple cards."""
         if self.note_editor.hasFocus():
             return
-        if not (e.buttons() & Qt.MouseButton.LeftButton) or self.drag_start_pos is None:
+        if not (e.buttons() & Qt.MouseButton.LeftButton) or \
+           self.drag_start_pos is None:
             return
-        if (e.pos() - self.drag_start_pos).manhattanLength() < QApplication.startDragDistance():
+        if (e.pos() - self.drag_start_pos).manhattanLength() < \
+           QApplication.startDragDistance():
             return
 
         sel = [c.path for c in self.sorter.cards if c._selected]
@@ -490,14 +531,3 @@ class ThumbnailCard(QFrame):
 
         drag.setHotSpot(QPoint(42, 42))
         drag.exec(Qt.DropAction.MoveAction)
-
-
-
-
-
-
-
-
-
-
-

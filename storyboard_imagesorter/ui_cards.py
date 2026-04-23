@@ -194,42 +194,51 @@ class ThumbnailCard(QFrame):
         )
 
     def _on_text_changed(self):
-        """Handles text input, enforces hard limits via revert-logic, and updates the counter."""
+        """Handles text input, enforces limits via auto-formatting/truncation, and updates the counter."""
+        # Get current state before manipulation
         current_cursor = self.note_editor.textCursor()
         current_pos = current_cursor.position()
-        full_text = self.note_editor.toPlainText()
-        lines = full_text.splitlines()
+        raw_text = self.note_editor.toPlainText()
 
-        is_valid = True
+        # 1. Handle Line Length Limit (Auto-wrap long lines at 100 chars)
+        lines = raw_text.splitlines()
+        sanitized_lines = []
 
-        # 1. Validate Line 1 limit (100 chars)
-        if len(lines) > 0 and len(lines[0]) > self._LINE1_LIMIT:
-            is_valid = False
+        for line in lines:
+            # If a single line exceeds the limit, split it into multiple lines
+            while len(line) > self._LINE1_LIMIT:
+                sanitized_lines.append(line[:self._LINE1_LIMIT])
+                line = line[self._LINE1_LIMIT:]
+            sanitized_lines.append(line)
 
-        # 2. Validate Max Lines limit (20 lines)
-        if len(lines) > self._MAX_LINES:
-            is_valid = False
+        # 2. Handle Max Lines Limit (Limit to 20 lines)
+        sanitized_lines = sanitized_lines[:self._MAX_LINES]
 
-        # 3. Validate Total Body character limit (1000 chars)
-        if len(full_text) > self._BODY_LIMIT:
-            is_valid = False
+        # Reconstruct the text from sanitized lines
+        processed_text = "\n".join(sanitized_lines)
 
-        if not is_valid:
-            # REVERT: If invalid, restore the last known good text and cursor position
+        # 3. Handle Total Body character limit (Truncate at 1000 chars)
+        if len(processed_text) > self._BODY_LIMIT:
+            processed_text = processed_text[:self._BODY_LIMIT]
+
+        # If the text was modified by our sanitization, update the editor
+        if processed_text != raw_text:
             self.note_editor.blockSignals(True)
-            self.note_editor.setPlainText(self._last_valid_text)
+            self.note_editor.setPlainText(processed_text)
 
+            # Try to restore cursor position so the user can keep typing/pasting smoothly
             new_cursor = self.note_editor.textCursor()
-            new_cursor.setPosition(min(current_pos, len(self._last_valid_text)))
+            # Clamp position to avoid issues if text was truncated
+            new_pos = min(current_pos, len(processed_text))
+            new_cursor.setPosition(new_pos)
             self.note_editor.setTextCursor(new_cursor)
             self.note_editor.blockSignals(False)
-            full_text = self._last_valid_text
-        else:
-            # ACCEPT: If valid, update the last known good text
-            self._last_valid_text = full_text
+
+        # Update internal state for undo/redo and preview
+        self._last_valid_text = processed_text
+        current_len = len(processed_text)
 
         # Update UI Counter
-        current_len = len(full_text)
         self.char_counter.setText(f"({current_len} / {self._BODY_LIMIT})")
 
         if current_len >= self._BODY_LIMIT - 20:
@@ -237,9 +246,10 @@ class ThumbnailCard(QFrame):
         else:
             self.char_counter.setStyleSheet("background:transparent; color: white; font-size: 9px;")
 
-        # Emit signal for the sorter
-        self.note_changed.emit(self.path, full_text.strip())
-        self._update_button_preview(full_text.strip())
+        # Emit signal for the sorter and update button preview
+        self.note_changed.emit(self.path, processed_text.strip())
+        self._update_button_preview(processed_text.strip())
+
 
     def _update_button_preview(self, text):
         """Updates the toggle button text based on note content."""

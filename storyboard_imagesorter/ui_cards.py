@@ -384,12 +384,7 @@ class ThumbnailCard(QFrame):
         self.img_container.setFixedHeight(size)
 
         if self._source_image and not self._source_image.isNull():
-            scaled_img = self._source_image.scaled(
-                size, size,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            self.img_label.setPixmap(QPixmap.fromImage(scaled_img))
+            self._display_image()
         else:
             self.load_thumbnail()
 
@@ -440,22 +435,31 @@ class ThumbnailCard(QFrame):
         except (RuntimeError, AttributeError):
             pass
 
+    def _display_image(self):
+        """Scales _source_image to the current card size and displays it."""
+        if not self._source_image or self._source_image.isNull():
+            return
+        available_w = self._size + 4
+        scaled_img = self._source_image.scaled(
+            available_w, self._size,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        self.img_label.setPixmap(QPixmap.fromImage(scaled_img))
+
     def _on_loaded(self, path, image, load_id):
-        """Callback when the thumbnail loading is finished."""
+        """Callback when thumbnail loading is finished."""
         if sip.isdeleted(self):
             return
         if load_id != self._load_id:
             return
         try:
             if self.img_label:
-                scaled_img = image.scaled(
-                    self._size, self._size,
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                self.img_label.setPixmap(QPixmap.fromImage(scaled_img))
+                self._source_image = image
+                self._is_loading = False
+                self._display_image()
         except (RuntimeError, AttributeError):
-            pass
+            self._is_loading = False
 
     def mark_changed(self, changed: bool):
         """Marks the card as having a modified file on disk."""

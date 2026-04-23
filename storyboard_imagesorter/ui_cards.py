@@ -61,6 +61,14 @@ class ThumbnailCard(QFrame):
         self._is_loading = False    # Track active loading state
         self.setAcceptDrops(True)
 
+        # Hard Limits
+        self._LINE1_LIMIT = 100
+        self._BODY_LIMIT = 1000
+        self._MAX_LINES = 20
+
+        # State tracking for input validation
+        self._last_valid_text = ""
+
         self._idx_font_size = 10
         self._name_font_size = 9
 
@@ -121,14 +129,24 @@ class ThumbnailCard(QFrame):
         # --- Color Accent Bar (Always visible, part of layout) ---
         self.color_bar = QFrame()
         self.color_bar.setFixedHeight(6)
-        # Default theme color: neutral dark grey
         self.color_bar.setStyleSheet("background-color: #404040; border: none;")
         self.main_layout.addWidget(self.color_bar)
 
         # --- Text Labels Section (Solid Dark Grey) ---
+        from PyQt6.QtWidgets import QHBoxLayout
+        self.idx_row = QHBoxLayout()
+        self.idx_row.setSpacing(5)
+        self.idx_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
         self.idx_label = QLabel(str(self.index + 1))
-        self.idx_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addWidget(self.idx_label)
+        self.idx_label.setStyleSheet("background:transparent; color:white;")
+        self.idx_row.addWidget(self.idx_label)
+
+        self.char_counter = QLabel("")
+        self.char_counter.setStyleSheet("background:transparent; color:white;")
+        self.idx_row.addWidget(self.char_counter)
+
+        self.main_layout.addLayout(self.idx_row)
 
         self.name_label = QLabel(os.path.basename(self.path))
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -149,12 +167,55 @@ class ThumbnailCard(QFrame):
         self.stack.setFixedHeight(self._size)
         self.load_thumbnail()
 
-    # ── Note editor ───────────────────────────────────────────────────────────
-
     def _on_text_changed(self):
-        new_text = self.note_editor.toPlainText().strip()
-        self.note_changed.emit(self.path, new_text)
-        self._update_button_preview(new_text)
+        """Handles text input, enforces hard limits via revert-logic, and updates counter."""
+        current_cursor = self.note_editor.textCursor()
+        current_pos = current_cursor.position()
+        full_text = self.note_editor.toPlainText()
+        lines = full_text.splitlines()
+
+        is_valid = True
+
+        # 1. Validate Line 1 limit
+        if len(lines) > 0 and len(lines[0]) > self._LINE1_LIMIT:
+            is_valid = False
+
+        # 2. Validate Max Lines limit
+        if len(lines) > self._MAX_LINES:
+            is_valid = False
+
+        # 3. Validate Total Body character limit
+        if len(full_text) > self._BODY_LIMIT:
+            is_valid = False
+
+        if not is_valid:
+            # REVERT: If invalid, restore the last known good text and cursor position
+            self.note_editor.blockSignals(True)
+            self.note_editor.setPlainText(self._last_valid_text)
+
+            # Restore cursor to its previous position (capped by new text length)
+            new_cursor = self.note_editor.textCursor()
+            new_cursor.setPosition(min(current_pos, len(self._last_valid_text)))
+            self.note_editor.setTextCursor(new_cursor)
+            self.note_editor.blockSignals(False)
+            # Update local variables to match the reverted state
+            full_text = self._last_valid_text
+        else:
+            # ACCEPT: If valid, update the last known good text
+            self._last_valid_text = full_text
+
+        # Update UI Counter (always based on current/reverted text)
+        current_len = len(full_text)
+        self.char_counter.setText(f"({current_len} / {self._BODY_LIMIT})")
+
+        if current_len >= self._BODY_LIMIT - 20:
+            self.char_counter.setStyleSheet("background:transparent; color: #e74c3c; font-size: 9px;")
+        else:
+            self.char_counter.setStyleSheet("background:transparent; color: white; font-size: 9px;")
+
+        # Emit signal for the sorter
+        self.note_changed.emit(self.path, full_text.strip())
+        self._update_button_preview(full_text.strip())
 
     def _update_button_preview(self, text):
         if not text:
@@ -206,12 +267,14 @@ class ThumbnailCard(QFrame):
         )
 
     def set_note_text(self, text: str):
+        """Sets note text and updates the counter immediately."""
         self.note_editor.blockSignals(True)
         self.note_editor.setPlainText(text if text else "")
-        self._update_button_preview(text if text else "")
+        # Sync our tracker so that manual setting doesn't trigger a revert
+        self._last_valid_text = text if text else ""
         self.note_editor.blockSignals(False)
-
-    # ── Visibility / sizing ───────────────────────────────────────────────────
+        # Trigger the logic to refresh UI/Counter
+        self._on_text_changed()
 
     def set_label_visibility(self, show_index: bool, show_filename: bool, show_notes: bool):
         self._settings_index_visible = show_index
@@ -222,14 +285,17 @@ class ThumbnailCard(QFrame):
         self.name_label.setVisible(show_filename)
         self.toggle_btn.setVisible(show_notes)
 
+        has_text = len(self.note_editor.toPlainText().strip()) > 0
+        self.char_counter.setVisible((show_notes or self._is_note_mode) and (has_text or self._is_note_mode))
+
         scale = 1.0 + ((self._size / 200.0) - 1.0) * 0.6
         self._idx_font_size = max(8, int(10 * scale))
         self._name_font_size = max(7, int(9 * scale))
 
-        # Solid dark grey background for text labels
         base_label_style = "background-color: #2a2a2a; color: white;"
 
         self.idx_label.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
+        self.char_counter.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
         self.name_label.setStyleSheet(f"{base_label_style} font-size:{self._name_font_size}px;")
 
         self.toggle_btn.setStyleSheet(
@@ -274,18 +340,11 @@ class ThumbnailCard(QFrame):
             self._settings_notes_visible
         )
 
-    # ── Thumbnail loading ─────────────────────────────────────────────────────
-
-    # ── Thumbnail loading ─────────────────────────────────────────────────────
-
     def load_thumbnail(self, force=False):
-        """Loads the thumbnail. If force=True, it cancels any current load and restarts."""
-        # If not forcing, check if we are already doing something or have a valid image
         if not force:
             if (self._source_image and not self._source_image.isNull()) or self._is_loading:
                 return
 
-        # Cancel existing worker if one exists
         if self._worker:
             self._worker.cancelled = True
             self._worker = None
@@ -300,12 +359,11 @@ class ThumbnailCard(QFrame):
         self.thread_pool.start(self._worker)
 
     def unload_thumbnail(self):
-        """Unloads the thumbnail and cancels any active loading process."""
         if self._worker:
             self._worker.cancelled = True
             self._worker = None
 
-        self._is_loading = False # Ensure flag is reset
+        self._is_loading = False
         self._source_image = None
 
         try:
@@ -314,18 +372,12 @@ class ThumbnailCard(QFrame):
         except (RuntimeError, AttributeError):
             pass
 
-
     def _on_loaded(self, path, image, load_id):
-        # Crucial: Reset loading flag regardless of outcome
-        self._is_loading = False
-
         if sip.isdeleted(self):
             return
         if load_id != self._load_id:
             return
-
         try:
-            self._source_image = image
             if self.img_label:
                 scaled_img = image.scaled(
                     self._size, self._size,
@@ -335,8 +387,6 @@ class ThumbnailCard(QFrame):
                 self.img_label.setPixmap(QPixmap.fromImage(scaled_img))
         except (RuntimeError, AttributeError):
             pass
-
-    # ── State ─────────────────────────────────────────────────────────────────
 
     def mark_changed(self, changed: bool):
         self._changed = changed
@@ -350,7 +400,6 @@ class ThumbnailCard(QFrame):
             self._apply_style()
 
     def _do_reload(self):
-        # Reset everything and force a fresh load
         self._source_image = None
         self.load_thumbnail()
         self.mark_changed(False)
@@ -371,21 +420,15 @@ class ThumbnailCard(QFrame):
         self._apply_style()
 
     def set_color(self, color_hex: str | None):
-        """Sets the card's color via a dedicated Accent Bar.
-        The text area remains solid dark grey for maximum readability."""
         self._color = color_hex
         if color_hex:
-            # Use the neon color for the bar
             self.color_bar.setStyleSheet(f"background-color: {color_hex}; border: none;")
         else:
-            # Revert to neutral theme grey
             self.color_bar.setStyleSheet("background-color: #404040; border: none;")
 
     def update_index(self, index):
         self.index = index
         self.idx_label.setText(str(index + 1))
-
-    # ── Mouse / drag ──────────────────────────────────────────────────────────
 
     def mousePressEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton:
@@ -444,3 +487,15 @@ class ThumbnailCard(QFrame):
 
         drag.setHotSpot(QPoint(42, 42))
         drag.exec(Qt.DropAction.MoveAction)
+
+
+
+
+
+
+
+
+
+
+
+

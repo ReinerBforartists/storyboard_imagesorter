@@ -24,7 +24,7 @@ from PyQt6.QtWidgets import (
 )
 
 from PyQt6.QtGui import QPixmap, QDrag, QPainter
-from PyQt6.QtCore import Qt, QMimeData, QPoint, pyqtSignal
+from PyQt6.QtCore import Qt, QMimeData, QPoint, pyqtSignal, QEvent
 from PyQt6 import sip  # Used to check if the C++ object still exists
 
 import constants
@@ -74,12 +74,22 @@ class ThumbnailCard(QFrame):
         self._name_font_size = 10  # Synchronized with index
 
         # CRITICAL: Initialize settings attributes BEFORE calling _setup_ui
-        # to prevent AttributeError during initial construction.
         self._settings_index_visible = True
         self._settings_name_visible = True
         self._settings_notes_visible = True
 
         self._setup_ui()
+
+        # Install event filter on the editor to intercept scroll events
+        self.note_editor.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        """Intercepts events for child widgets to prevent scroll chaining."""
+        if obj is self.note_editor and event.type() == QEvent.Type.Wheel:
+            # The editor handles the wheel event internally.
+            # We let it return False so the event stays within the widget.
+            return False
+        return super().eventFilter(obj, event)
 
     def _setup_ui(self):
         """Sets up the initial UI components for the thumbnail card."""
@@ -121,9 +131,14 @@ class ThumbnailCard(QFrame):
 
         self.note_editor = QTextEdit()
         self.note_editor.setPlaceholderText("Type note here...")
+        # Ensure scrollbars are always visible to provide visual feedback
+        self.note_editor.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.note_editor.setStyleSheet(
-            "background:#2a2a2a; color:#eee; border:1px solid #404040; "
-            "border-radius:3px; font-size:10px; padding:4px;"
+            "QTextEdit { background:#2a2a2a; color:#eee; border:1px solid #404040; "
+            "border-radius:3px; font-size:12px; padding:4px; }"
+            "QScrollBar:vertical { background: #2a2a2a; width: 8px; margin: 0px; }"
+            "QScrollBar::handle:vertical { background: #444; min-height: 20px; border-radius: 4px; }"
+            "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }"
         )
         self.note_editor.textChanged.connect(self._on_text_changed)
 
@@ -267,7 +282,9 @@ class ThumbnailCard(QFrame):
         else:
             self._is_note_mode = True
             self.stack.setCurrentIndex(1)
-            self.stack.setFixedHeight(max(self._size, 120))
+            # Set height for editor and force it to take focus for immediate scrolling/typing
+            self.stack.setFixedHeight(max(self._size, 140))
+            self.note_editor.setFocus()
             self.toggle_btn.setText("🖼 Show Image")
 
         self._apply_style()

@@ -262,9 +262,15 @@ class ToolbarMixin:
 
         self.scroll.files_dropped.connect(self._add_images_bulk)
         self.scroll.summary_dropped.connect(self.import_notes_from_summary)
-        self.scroll.verticalScrollBar().valueChanged.connect(
-            lambda _: self._lazy_timer.start(80)
-        )
+
+        # To prevent continuous scrolling from resetting the timer indefinitely,
+        # we only restart the timer if it is not already active.
+        # This ensures that the visibility check actually triggers during long scrolls.
+        def _on_scroll_changed():
+            if not self._lazy_timer.isActive():
+                self._lazy_timer.start(30)
+
+        self.scroll.verticalScrollBar().valueChanged.connect(_on_scroll_changed)
 
         self.container = ui_components.LassoContainer(self)
         self.flow_layout = ui_components.FlowLayout(

@@ -104,32 +104,17 @@ class ImageLoadWorker(QRunnable):
                 if attempt < self.retries:
                     time.sleep(0.3)
 
-        # Final processing if load was successful
+        # Emit scaled image to UI thread if load was successful
         if not img.isNull() and not self.cancelled:
             if img.width() > 0 and img.height() > 0:
-                ratio = min(MAX_QUALITY_SIZE / img.width(), MAX_QUALITY_SIZE / img.height(), 1.0)
-                new_w, new_h = int(img.width() * ratio), int(img.height() * ratio)
-                scaled = img.scaled(new_w, new_h, Qt.AspectRatioMode.KeepAspectRatio,
-                                    Qt.TransformationMode.SmoothTransformation)
-                if not scaled.isNull() and not self.cancelled:
-                    self.signals.finished.emit(self.path, scaled)
-
-        # Final integrity check before emitting to UI thread
-        if not img.isNull() and not self.cancelled:
-            # Ensure the image actually has valid dimensions (not just a null/corrupt buffer)
-            if img.width() > 0 and img.height() > 0:
-                # Calculate high-quality scale factor for zoom cache
                 ratio = min(MAX_QUALITY_SIZE / img.width(), MAX_QUALITY_SIZE / img.height(), 1.0)
                 new_w = int(img.width() * ratio)
                 new_h = int(img.height() * ratio)
-
                 scaled = img.scaled(
-                    new_w,
-                    new_h,
+                    new_w, new_h,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation
                 )
-                # Only emit if the scaled result is also valid
                 if not scaled.isNull() and not self.cancelled:
                     self.signals.finished.emit(self.path, scaled)
 

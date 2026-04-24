@@ -360,6 +360,11 @@ class ExportManager:
                 global_offset = chunk_idx * per_page
                 sheet = self._render_list_sheet(chunk, thumb_sz, show_lbl, show_note, show_index, pad, font, font_bold, char_limit, global_offset)
 
+            if sheet.isNull() or self._cancelled:
+                self._stop_progress()
+                self.show_status("Export cancelled")
+                return
+
             sheet.save(dest_path)
 
         self._stop_progress()
@@ -407,6 +412,10 @@ class ExportManager:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         for i, card in enumerate(chunk):
+            if self._cancelled:
+                painter.end()
+                return QImage()
+
             r, c = divmod(i, cols)
             x = pad + c * (thumb_sz + pad)
             y = pad + sum(row_heights[:r]) if r > 0 else pad
@@ -492,6 +501,10 @@ class ExportManager:
 
         curr_y = pad
         for r_data in rows_data:
+            if self._cancelled:
+                painter.end()
+                return QImage()
+
             img = utils_workers.load_image_safely(r_data['card'].path)
             if not img.isNull():
                 thumb = img.scaled(

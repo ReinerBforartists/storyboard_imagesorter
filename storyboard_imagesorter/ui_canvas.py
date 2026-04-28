@@ -210,12 +210,12 @@ class LassoContainer(QWidget):
         self._rubber = QRubberBand(QRubberBand.Shape.Rectangle, self)
         self.setStyleSheet("background:#181818;")
         self.setAcceptDrops(True)
-        # Allow the container to receive keyboard focus
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.overlay = IndicatorOverlay(self)
         self.overlay.raise_()
         self._is_internal_drag = False
-        self._last_drag_target = (None, None)  # (card, indicator) — skip repaint if unchanged
+        self._is_external_drag = False
+        self._last_drag_target = (None, None)
 
         self._scroll_timer = QTimer()
         self._scroll_timer.setInterval(20)
@@ -324,9 +324,13 @@ class LassoContainer(QWidget):
             self._is_internal_drag = True
             self._update_scroll_zones()
             e.acceptProposedAction()
+        elif e.mimeData().hasFormat("text/uri-list"):
+            self._is_external_drag = True
+            self._update_scroll_zones()
+            e.acceptProposedAction()
         else:
-            # Reset stale drag state on any new external drag enter
             self._is_internal_drag = False
+            self._is_external_drag = False
             self._scroll_timer.stop()
             self._scroll_direction = 0
             self.overlay.update()
@@ -338,19 +342,17 @@ class LassoContainer(QWidget):
                 e.ignore()
 
     def dragMoveEvent(self, e):
-        """Handles the movement of an internal drag to update visual indicators."""
-        if e.mimeData().hasFormat(MIME_INTERNAL):
+        """Handles the movement of a drag to update visual indicators."""
+        if e.mimeData().hasFormat(MIME_INTERNAL) or e.mimeData().hasFormat("text/uri-list"):
             self._update_scroll_zones()
 
             pos = e.position().toPoint()
             tgt, indicator = self._find_target(pos)
 
-            # Skip repaint if nothing changed
             if (tgt, indicator) == self._last_drag_target:
                 e.acceptProposedAction()
                 return
 
-            # Reset only the single previously highlighted card
             prev_tgt, _ = self._last_drag_target
             if prev_tgt is not None:
                 prev_tgt._drag_over = False
@@ -384,6 +386,12 @@ class LassoContainer(QWidget):
         if not in_viewport:
             if self._is_internal_drag:
                 self._reset_drag_state()
+            elif self._is_external_drag:
+                self._is_external_drag = False
+                self._scroll_timer.stop()
+                self._scroll_direction = 0
+                self.unsetCursor()
+                self._clear_drop_state()
             else:
                 if scroll_area:
                     scroll_area.dragLeaveEvent(e)
@@ -393,6 +401,7 @@ class LassoContainer(QWidget):
     def dropEvent(self, e):
         """Handles the actual dropping of images for reordering or stashing."""
         self._reset_drag_state()
+        self._is_external_drag = False
         self._scroll_direction = 0
         if e.mimeData().hasFormat(MIME_INTERNAL):
             src_data = e.mimeData().data(MIME_INTERNAL).data().decode()
@@ -419,8 +428,6 @@ class LassoContainer(QWidget):
                 try:
                     target_idx_in_rem = remaining.index(tgt.path)
 
-                    # If the target was identified as 'right' (via card half or gap),
-                    # place it immediately after that card.
                     if indicator == 'right':
                         target_idx_in_rem += 1
 
@@ -435,7 +442,6 @@ class LassoContainer(QWidget):
                 txt_files = [p for p in paths if p.lower().endswith('.txt')]
                 img_files = [p for p in paths if p.lower().endswith(constants.IMAGE_EXTS)]
 
-                # Find the sorter summary among dropped txt files by checking the marker.
                 summary_file = None
                 for t in txt_files:
                     try:
@@ -447,7 +453,15 @@ class LassoContainer(QWidget):
                         pass
 
                 if img_files:
-                    self.sorter._add_images_bulk(img_files, summary_path=summary_file)
+                    pos = e.position().toPoint()
+                    tgt, indicator = self._find_target(pos)
+                    if tgt is not None:
+                        idx = self.sorter.cards.index(tgt)
+                        insert_index = idx + 1 if indicator == 'right' else idx
+                    else:
+                        insert_index = None  # append
+
+                    self.sorter._add_images_bulk(img_files, summary_path=summary_file, insert_index=insert_index)
                 elif summary_file:
                     self.sorter.import_notes_from_summary(summary_file)
 
@@ -537,11 +551,26 @@ class FileDropScrollArea(QScrollArea):
             txt_files = [p for p in paths if p.lower().endswith('.txt')]
 
             if img_files:
-                # Pass summary_path so it is applied after push() completes and all
-                # cards are guaranteed to be in self.cards.
-                self.sorter._add_images_bulk(img_files, summary_path=txt_files[0] if txt_files else None)
+                insert_index = None  # default: append
+
+                # Map drop position into the LassoContainer's coordinate space
+                container = self.widget()  # LassoContainer is the scroll area's widget
+                if container and hasattr(container, '_find_target') and self.sorter:
+                    pos_in_viewport = e.position().toPoint()
+                    pos_in_container = container.mapFromGlobal(
+                        self.viewport().mapToGlobal(pos_in_viewport)
+                    )
+                    tgt, indicator = container._find_target(pos_in_container)
+                    if tgt is not None:
+                        idx = self.sorter.cards.index(tgt)
+                        insert_index = idx + 1 if indicator == 'right' else idx
+
+                self.sorter._add_images_bulk(
+                    img_files,
+                    summary_path=txt_files[0] if txt_files else None,
+                    insert_index=insert_index
+                )
             elif txt_files:
-                # No images — cards already present, apply directly.
                 self.sorter.import_notes_from_summary(txt_files[0])
 
             e.acceptProposedAction()

@@ -310,11 +310,16 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 
         return card
 
-    def _add_images_bulk(self, paths, summary_path=None):
+    def _add_images_bulk(self, paths, summary_path=None, insert_index=None):
         existing = {c.path for c in self.cards}
         new = [p for p in paths if p not in existing]
+        skipped = len(paths) - len(new)
+
+        if skipped > 0:
+            self.show_status(f"⚠ {skipped} image{'s' if skipped > 1 else ''} already present, skipped")
+
         if new:
-            self.undo_stack.push(commands.AddImagesCommand(self, new))
+            self.undo_stack.push(commands.AddImagesCommand(self, new, insert_index=insert_index))
         if summary_path:
             self.import_notes_from_summary(summary_path)
 

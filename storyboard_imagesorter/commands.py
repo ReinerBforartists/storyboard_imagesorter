@@ -26,11 +26,12 @@ from PyQt6.QtWidgets import QApplication
 
 
 class AddImagesCommand(QUndoCommand):
-    def __init__(self, sorter, new_paths):
+    def __init__(self, sorter, new_paths, insert_index=None):
         super().__init__("Add Images")
         self.sorter = sorter
         self.new_paths = new_paths
-        self.added_cards = []  # Store actual card objects
+        self.insert_index = insert_index
+        self.added_cards = []
 
     def redo(self):
         self.added_cards = []
@@ -40,12 +41,17 @@ class AddImagesCommand(QUndoCommand):
         if show_bar:
             self.sorter._start_progress(total)
 
+        current_index = self.insert_index  # None = append
+
         for i, p in enumerate(self.new_paths):
             if self.sorter._cancelled:
                 break
 
-            card = self.sorter._add_image_internal(p, rebuild=False)
+            card = self.sorter._add_image_internal(p, index=current_index, rebuild=False)
             self.added_cards.append(card)
+
+            if current_index is not None:
+                current_index += 1  # keep subsequent cards in order
 
             if show_bar:
                 self.sorter.progress_bar.setValue(i + 1)

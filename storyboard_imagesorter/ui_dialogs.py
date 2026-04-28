@@ -20,20 +20,25 @@
 # and information displays such as the About dialog and a full-screen Lightbox view.
 
 import os
-from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QTableWidget, QHeaderView, QDialogButtonBox, QSpinBox,
-    QPushButton, QTableWidgetItem, QFrame, QWidget, QCheckBox,
-    QComboBox, QStackedWidget, QScrollArea, QFileDialog
+from PyQt6.QtCore import (
+    Qt, QRect, QTimer, pyqtProperty,
+    QPropertyAnimation, QEasingCurve
 )
 from PyQt6.QtGui import (
-    QPainter, QColor, QFont, QImage, QPixmap
+    QPainter, QColor, QFont, QImage, QPixmap, QMouseEvent,
+    QPaintEvent, QKeyEvent, QShowEvent, QResizeEvent
 )
-from PyQt6.QtCore import (
-    Qt, QRect, QTimer
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
+    QTableWidget, QHeaderView, QSpinBox,
+    QPushButton, QTableWidgetItem, QFrame, QWidget,
+    QComboBox, QStackedWidget, QScrollArea, QFileDialog
 )
 
 import utils_workers
+from commands import RemoveSelectedCommand, MoveToStashCommand
+import ui_components
+
 
 # ─── SHARED HELPERS ──────────────────────────────────────────────────────────
 
@@ -48,10 +53,6 @@ _CHOOSE_BTN_STYLE = (
 )
 _COLLISION_STYLE_WARN = (
     "background:#3a1010;color:#ff7070;border:1px solid #7a2020;"
-    "border-radius:4px;padding:4px 8px;font-size:11px;"
-)
-_COLLISION_STYLE_OK = (
-    "background:#0f2a18;color:#5dba7a;border:1px solid #1e5c35;"
     "border-radius:4px;padding:4px 8px;font-size:11px;"
 )
 _EXPORT_BTN_STYLE = (
@@ -742,126 +743,439 @@ class AboutDialog(QDialog):
 
         self.adjustSize()
 
-
-# ─── LIGHTBOX (WITH NOTE DISPLAY) ─────────────────────────────────────────────
+# ─── LIGHTBOX (WITH NOTE DISPLAY & HEADER ACTIONS) ─────────────────────────────
 
 class Lightbox(QDialog):
-    def __init__(self, cards, start_index, parent=None):
+    """Full-screen image viewer with dual-mode motion feedback:
+    'Remove' (scale down) and 'Stash' (slide down).
+    """
+
+    @pyqtProperty(float)
+    def image_opacity(self):
+        return self._image_opacity
+
+    @image_opacity.setter
+    def image_opacity(self, value):
+        self._image_opacity = value
+        self.update()
+
+    @pyqtProperty(float)
+    def image_scale(self):
+        return self._image_scale
+
+    @image_scale.setter
+    def image_scale(self, value):
+        self._image_scale = value
+        self.update()
+
+    @pyqtProperty(float)
+    def image_y_offset(self):
+        return self._image_y_offset
+
+    @image_y_offset.setter
+    def image_y_offset(self, value):
+        self._image_y_offset = value
+        self.update()
+
+    def __init__(self, cards: list[ui_components.ThumbnailCard], start_index: int, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.cards = cards
+        self.sorter = parent
         self.index = start_index
+        self._last_action_time = 0.0
+        self._text_flash_active = False
+
+        # Animation state
+        self._image_opacity = 1.0
+        self._image_scale = 1.0
+        self._image_y_offset = 0.0
+        self._is_animating = False
+        self._pending_action = None
+
+        # Initialize flash timer for text feedback
+        self._text_flash_timer = QTimer(self)
+        self._text_flash_timer.setSingleShot(True)
+        self._text_flash_timer.setInterval(300)
+        self._text_flash_timer.timeout.connect(self._clear_text_flash)
+
+        # Setup Fade Animation (Common for both)
+        self.fade_animation = QPropertyAnimation(self, b"image_opacity")
+        self.fade_animation.setDuration(400)
+        self.fade_animation.setStartValue(1.0)
+        self.fade_animation.setEndValue(0.0)
+        self.fade_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        self.fade_animation.finished.connect(self._on_animation_finished)
+
+        # Setup Scale Animation (Only for removal)
+        self.scale_animation = QPropertyAnimation(self, b"image_scale")
+        self.scale_animation.setDuration(400)
+        self.scale_animation.setStartValue(1.0)
+        self.scale_animation.setEndValue(0.5)
+        self.scale_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+        # Setup Slide Animation (Only for stash)
+        self.slide_animation = QPropertyAnimation(self, b"image_y_offset")
+        self.slide_animation.setDuration(400)
+        self.slide_animation.setStartValue(0.0)
+        self.slide_animation.setEndValue(250.0)
+        self.slide_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+        # Initial index safety guard
+        if cards:
+            self.index = max(0, min(start_index, len(cards) - 1))
+
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Dialog)
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setStyleSheet("background:transparent;")
+
+        # Image cache to avoid repeated disk reads during animation.
+        self._cached_image: QImage | None = None
+        self._cached_path: str | None = None
+
         self._setup_close_button()
+        self._setup_header_buttons()
+        self._setup_message_label()
         self._load_current()
 
-    def _setup_close_button(self):
+    def _setup_close_button(self) -> None:
         self.close_btn = QPushButton("✕", self)
-        self.close_btn.setFixedSize(36, 36)
+        self.close_btn.setFixedSize(32, 32)
         self.close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.close_btn.setStyleSheet("""
-            QPushButton {
-                background: rgba(40, 40, 40, 180);
-                color: white;
-                border-radius: 18px;
-                font-size: 20px;
-                font-weight: bold;
-                border: 1px solid rgba(255, 255, 255, 30);
-            }
-            QPushButton:hover {
-                background: rgba(200, 40, 40, 200);
-                border: 1px solid white;
-            }
+            QPushButton { background: rgba(40, 40, 40, 180); color: white; border-radius: 16px; font-size: 16px; font-weight: bold; border: 1px solid rgba(255, 255, 255, 30); }
+            QPushButton:hover { background: rgba(200, 40, 40, 200); border: 1px solid white; }
         """)
         self.close_btn.clicked.connect(self.accept)
 
-    def showEvent(self, event):
+    def _setup_header_buttons(self) -> None:
+        """Create compact header container with action buttons."""
+        self.header_container = QWidget(self)
+        self.header_container.setStyleSheet("background: transparent;")
+        lay = QHBoxLayout(self.header_container)
+        lay.setContentsMargins(14, 8, 14, 8)
+        lay.setSpacing(8)
+
+        self.remove_btn = QPushButton("✕ Remove", self)
+        self.remove_btn.setFixedSize(95, 28)
+        self.remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.remove_btn.setToolTip("Remove image")
+        self.remove_btn.setStyleSheet("""
+            QPushButton { background:#3a1a1a; color:#d0d0d0; border:1px solid #5a2020; border-radius:4px; font-size:14px; }
+            QPushButton:hover { background:#5a2020; border-color:#8a3030; }
+            QPushButton:disabled { background:#2a2a2a; color:#555; border-color:#333; }
+        """)
+        self.remove_btn.clicked.connect(self._on_remove)
+        lay.addWidget(self.remove_btn)
+
+        # Use a downward arrow icon to signify "stashing" or moving away
+        self.stash_btn = QPushButton("↓ Move to Stash", self)
+        self.stash_btn.setFixedSize(128, 28)
+        self.stash_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.stash_btn.setToolTip("Move image to stash")
+        self.stash_btn.setStyleSheet("""
+            QPushButton { background:#1a3a6a; color:#d0d0d0; border:1px solid #2d5a9a; border-radius:4px; font-size:14px; }
+            QPushButton:hover { background:#2d5a9a; border-color:#4d8fcc; }
+            QPushButton:disabled { background:#2a2a2a; color:#555; border-color:#333; }
+        """)
+        self.stash_btn.clicked.connect(self._on_move_to_stash)
+        lay.addWidget(self.stash_btn)
+
+        lay.addStretch()
+        self.header_container.setGeometry(0, 0, self.width(), 40)
+        self.header_container.show()
+
+    def _setup_message_label(self) -> None:
+        """Create temporary status message label in the top-right corner."""
+        self._message_label = QLabel("", self)
+        self._message_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        self._message_label.setStyleSheet("""
+            QLabel { color: #4d8fcc; font-size: 12px; font-weight: bold; background: transparent; }
+        """)
+        self._message_label.setVisible(False)
+
+        self._message_timer = QTimer(self)
+        self._message_timer.setSingleShot(True)
+        self._message_timer.timeout.connect(self._clear_message)
+        self._message_timer.setInterval(2000)
+
+    def _update_header_buttons_state(self) -> None:
+        """Enable/disable buttons based on availability and animation state."""
+        has_cards = bool(self.sorter.cards)
+        enabled = has_cards and not self._is_animating
+        self.remove_btn.setEnabled(enabled)
+        self.stash_btn.setEnabled(enabled)
+
+    def _set_buttons_enabled(self, enabled: bool) -> None:
+        """Helper to toggle buttons state."""
+        self.remove_btn.setEnabled(enabled)
+        self.stash_btn.setEnabled(enabled)
+
+    def _on_remove(self) -> None:
+        """Trigger the Scale + Fade animation for removal."""
+        if self._is_animating or not self.sorter.cards:
+            return
+
+        self._pending_action = "remove"
+        self._is_animating = True
+        self._update_header_buttons_state()  # replaces _set_buttons_enabled(False)
+
+        self.fade_animation.setStartValue(1.0)
+        self.fade_animation.setEndValue(0.0)
+        self.scale_animation.setStartValue(1.0)
+        self.scale_animation.setEndValue(0.5)
+
+        self.fade_animation.start()
+        self.scale_animation.start()
+
+    def _on_move_to_stash(self) -> None:
+        """Trigger the Slide + Fade animation for stashing."""
+        if self._is_animating or not self.sorter.cards:
+            return
+
+        self._pending_action = "stash"
+        self._is_animating = True
+        self._update_header_buttons_state()  # replaces _set_buttons_enabled(False)
+
+        self.fade_animation.setStartValue(1.0)
+        self.fade_animation.setEndValue(0.0)
+        self.slide_animation.setStartValue(0.0)
+        self.slide_animation.setEndValue(250.0)
+
+        self.fade_animation.start()
+        self.slide_animation.start()
+
+    def _on_animation_finished(self) -> None:
+        """Execute the actual command after all animations have finished."""
+        if not self.sorter.cards or self.index < 0 or self.index >= len(self.sorter.cards):
+            self._reset_after_action()
+            return
+
+        path = self.sorter.cards[self.index].path
+
+        if self._pending_action == "remove":
+            data = [{'path': path, 'index': self.index}]
+            self.sorter.undo_stack.push(RemoveSelectedCommand(self.sorter, data))
+            self.show_message("Image removed")
+            self._flash_text_success()
+
+        elif self._pending_action == "stash":
+            self.sorter.undo_stack.push(MoveToStashCommand(self.sorter, [path]))
+            self.show_message("Moved to stash")
+            self._flash_text_success()
+
+        # Reset before navigating so the next image renders with clean values.
+        self._reset_after_action()
+        self._navigate_after_change()
+
+    def _reset_after_action(self) -> None:
+        """Stop all animations and reset properties for the next image."""
+        # Stop animations before resetting values, otherwise a still-running
+        # animation will immediately overwrite the reset on the next tick.
+        self.fade_animation.stop()
+        self.scale_animation.stop()
+        self.slide_animation.stop()
+
+        # Use property setters so update() is triggered correctly.
+        self.image_opacity = 1.0
+        self.image_scale = 1.0
+        self.image_y_offset = 0.0
+
+        self._is_animating = False
+        self._pending_action = None
+        self._update_header_buttons_state()
+
+    def _navigate_after_change(self) -> None:
+        """Navigate safely after removal/move with strict index bounds."""
+        current_cards = self.sorter.cards
+        if not current_cards:
+            self.accept()
+            return
+
+        self.index = max(0, min(self.index, len(current_cards) - 1))
+        self._load_current()  # reload cache for the new image
+
+    def show_message(self, text: str, duration: int = 2000) -> None:
+        """Update or restart the status message timer."""
+        self._message_label.setText(f"✓ {text}")
+        self._message_label.adjustSize()
+        self._message_label.setVisible(True)
+        self._message_timer.stop()
+        self._message_timer.start(duration)
+        self._reposition_message_label()
+
+    def _clear_message(self) -> None:
+        """Hide the message label after timeout."""
+        self._message_label.setVisible(False)
+        self._message_label.clear()
+
+    def _reposition_message_label(self) -> None:
+        """Position message label in top-right, next to close button."""
+        margin = 8
+        x = self.close_btn.x() - self._message_label.width() - margin
+        y = self.close_btn.y()
+        self._message_label.setGeometry(x, y, self._message_label.width(), 24)
+
+    def _flash_text_success(self) -> None:
+        """Trigger a brief text highlight to indicate successful action."""
+        self._text_flash_active = True
+        self._text_flash_timer.start()
+        self.update()
+
+    def _clear_text_flash(self) -> None:
+        """Clear the text highlight after timeout."""
+        self._text_flash_active = False
+        self.update()
+
+    def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
-        self._reposition_button()
+        self._reposition_close_button()
+        self._reposition_header_buttons()
+        self._reposition_message_label()
+        self._update_header_buttons_state()
         self.setFocus()
 
-    def resizeEvent(self, e):
-        super().resizeEvent(e)
-        self._reposition_button()
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self._reposition_close_button()
+        self._reposition_header_buttons()
+        self._reposition_message_label()
         self.update()
 
-    def _reposition_button(self):
-        margin = 20
+    def _reposition_close_button(self) -> None:
+        margin = 10
         self.close_btn.move(self.width() - self.close_btn.width() - margin, margin)
 
-    def _load_current(self):
+    def _reposition_header_buttons(self) -> None:
+        self.header_container.setGeometry(0, 0, self.width(), 40)
+
+    def _load_current(self) -> None:
+        """Load and cache the current image to avoid repeated disk reads during animation."""
+        current_cards = self.sorter.cards
+        if current_cards and 0 <= self.index < len(current_cards):
+            path = current_cards[self.index].path
+            self._cached_image = QImage(path)
+            self._cached_path = path
+        else:
+            self._cached_image = None
+            self._cached_path = None
         self.update()
 
-    def paintEvent(self, e):
-        if not self.cards:
-            return
+    def paintEvent(self, event: QPaintEvent) -> None:
         p = QPainter(self)
         p.fillRect(self.rect(), QColor(0, 0, 0, 220))
 
-        path = self.cards[self.index].path
-        img = QImage(path)
-        # Safety check for race conditions during direct disk access in paint event
-        if img.isNull() or img.width() == 0 or img.height() == 0:
+        current_cards = self.sorter.cards
+        if not current_cards or self.index < 0 or self.index >= len(current_cards):
+            p.end()
+            return
+
+        # Use cached image instead of loading from disk on every frame.
+        img = self._cached_image
+        path = self._cached_path
+
+        if img is None or img.isNull() or img.width() == 0 or img.height() == 0:
             p.setPen(QColor("#aaa"))
             p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Cannot load image")
+            p.end()
             return
 
         pad = 60
         area = self.rect().adjusted(pad, pad, -pad, -pad)
-        scaled = img.scaled(area.width(), area.height(),
-                            Qt.AspectRatioMode.KeepAspectRatio,
-                            Qt.TransformationMode.SmoothTransformation)
-        x = area.x() + (area.width() - scaled.width()) // 2
-        y = area.y() + (area.height() - scaled.height()) // 2
-        p.drawImage(x, y, scaled)
+        scaled = img.scaled(
+            area.width(), area.height(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
 
+        base_x = area.x() + (area.width() - scaled.width()) // 2
+        base_y = area.y() + (area.height() - scaled.height()) // 2
+
+        draw_w = int(scaled.width() * self._image_scale)
+        draw_h = int(scaled.height() * self._image_scale)
+
+        x = base_x + (scaled.width() - draw_w) // 2
+        y = base_y + (scaled.height() - draw_h) // 2 + self._image_y_offset
+
+        p.setOpacity(self._image_opacity)
+        p.drawImage(QRect(int(x), int(y), draw_w, draw_h), scaled)
+
+        # Reset opacity for UI elements.
+        p.setOpacity(1.0)
         p.setPen(QColor("#ccc"))
         p.setFont(QFont("Arial", 11))
 
         note = ""
-        if self.parent() and hasattr(self.parent(), 'custom_notes'):
-            note = self.parent().custom_notes.get(path, "")
+        if hasattr(self.sorter, 'custom_notes'):
+            note = self.sorter.custom_notes.get(path, "")
 
-        info_text = f"{self.index + 1} / {len(self.cards)}"
+        info_text = f"{self.index + 1} / {len(current_cards)}"
         if note:
             info_text += f"  —  {note}"
 
-        text_rect = self.rect().adjusted(40, 0, -40, -30)
-        p.drawText(text_rect,
-                   Qt.AlignmentFlag.AlignBottom |
-                   Qt.AlignmentFlag.AlignHCenter |
-                   Qt.TextFlag.TextWordWrap,
-                   info_text)
+        text_rect = self.rect().adjusted(40, 0, -40, -10)
+
+        flash_color = QColor("#ffffff") if self._text_flash_active else QColor("#ccc")
+        flash_font = QFont("Arial", 12, QFont.Weight.Bold) if self._text_flash_active else QFont("Arial", 11)
+        p.setPen(flash_color)
+        p.setFont(flash_font)
+        p.drawText(
+            text_rect,
+            Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignHCenter | Qt.TextFlag.TextWordWrap,
+            info_text,
+        )
 
         if self.index > 0:
             p.setFont(QFont("Arial", 32))
             p.setPen(QColor("#fff"))
             p.drawText(QRect(0, 0, 60, self.height()), Qt.AlignmentFlag.AlignCenter, "‹")
-        if self.index < len(self.cards) - 1:
+        if self.index < len(current_cards) - 1:
             p.setFont(QFont("Arial", 32))
             p.setPen(QColor("#fff"))
             p.drawText(QRect(self.width() - 60, 0, 60, self.height()), Qt.AlignmentFlag.AlignCenter, "›")
 
-    def keyPressEvent(self, e):
-        k = e.key()
-        if k in (Qt.Key.Key_Escape, Qt.Key.Key_Space):
-            self.accept()
-            return
-        elif k in (Qt.Key.Key_Left, Qt.Key.Key_Up):
-            self.index = max(0, self.index - 1)
-            self.update()
-        elif k in (Qt.Key.Key_Right, Qt.Key.Key_Down):
-            self.index = min(len(self.cards) - 1, self.index + 1)
-            self.update()
+        p.end()
 
-    def mousePressEvent(self, e):
-        if e.button() == Qt.MouseButton.LeftButton:
-            if e.pos().x() < 60 and self.index > 0:
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.close_btn.geometry().contains(event.pos()):
+                self.accept()
+                return
+
+            if event.pos().x() < 60 and self.index > 0:
                 self.index -= 1
-                self.update()
-            elif e.pos().x() > self.width() - 60 and self.index < len(self.cards) - 1:
+                self._load_current()
+            elif event.pos().x() > self.width() - 60 and self.index < len(self.sorter.cards) - 1:
                 self.index += 1
-                self.update()
+                self._load_current()
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        """Handle keyboard navigation and closing."""
+        k = event.key()
+
+        if k == Qt.Key.Key_Escape:
+            self.accept()
+            event.accept()
+            return
+
+        if k == Qt.Key.Key_Space:
+            # Space closes the lightbox, main window re-opens it on next press.
+            self.accept()
+            event.accept()
+            return
+
+        if k in (Qt.Key.Key_Left, Qt.Key.Key_Up):
+            if self.index > 0:
+                self.index -= 1
+                self._load_current()
+            event.accept()
+            return
+
+        if k in (Qt.Key.Key_Right, Qt.Key.Key_Down):
+            if self.index < len(self.sorter.cards) - 1:
+                self.index += 1
+                self._load_current()
+            event.accept()
+            return
+
+        event.ignore()

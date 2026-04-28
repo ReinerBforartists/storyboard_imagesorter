@@ -237,7 +237,7 @@ class ExportPreviewDialog(QDialog):
             self.table.setItem(i, 1, QTableWidgetItem(os.path.basename(card.path)))
         self.table.blockSignals(False)
 
-        # Collision check
+        # Collision check & Path validation
         collisions = []
         if folder and os.path.isdir(folder):
             try:
@@ -259,10 +259,16 @@ class ExportPreviewDialog(QDialog):
             )
             self._collision_lbl.setStyleSheet(_COLLISION_STYLE_WARN)
             self._collision_lbl.setVisible(True)
+        elif not folder or not os.path.isdir(folder):
+            # Warning when button is disabled due to invalid path
+            self._collision_lbl.setText("⚠  Please select a valid export folder to enable export.")
+            self._collision_lbl.setStyleSheet(_COLLISION_STYLE_WARN)
+            self._collision_lbl.setVisible(True)
         else:
             self._collision_lbl.setVisible(False)
 
         self._export_btn.setEnabled(bool(folder and os.path.isdir(folder)))
+
 
     def get_prefix(self):
         return self.prefix_edit.text()
@@ -534,6 +540,11 @@ class ContactSheetDialog(QDialog):
             self._collision_lbl.setText(
                 f"⚠  {len(collisions)} file(s) will be overwritten: {names}"
             )
+            self._collision_lbl.setStyleSheet(_COLLISION_STYLE_WARN)
+            self._collision_lbl.setVisible(True)
+        elif not folder or not os.path.isdir(folder):
+            # Warning when button is disabled due to invalid path
+            self._collision_lbl.setText("⚠  Please select a valid export folder to enable export.")
             self._collision_lbl.setStyleSheet(_COLLISION_STYLE_WARN)
             self._collision_lbl.setVisible(True)
         else:

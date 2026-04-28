@@ -29,7 +29,7 @@ from PyQt6 import sip
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QFileDialog, QMessageBox, QMenu, QFrame, QTextEdit,
 )
-from PyQt6.QtGui import QUndoStack
+from PyQt6.QtGui import QUndoStack, QIcon
 from PyQt6.QtCore import (
     Qt, QPoint, QThreadPool, QTimer, QEvent,
 )
@@ -57,6 +57,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self.setWindowTitle("Storyboard Imagesorter")
         self.resize(1200, 750)
         self.setStyleSheet(self.APP_STYLE)
+        self.setWindowIcon(QIcon(utils_workers.resource_path("icon.ico")))
 
         self.settings_manager = settings_manager.SettingsManager()
 
@@ -959,6 +960,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+    app.setWindowIcon(QIcon(utils_workers.resource_path("icon.ico")))
     sorter = ImageSorter()
     sorter.show()
     sys.exit(app.exec())

@@ -616,7 +616,7 @@ class AboutDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("About Storyboard Imagesorter")
         self.setModal(True)
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(440)
         self.setMaximumWidth(500)
         self.setStyleSheet(
             "QDialog{background-color:#1e1e1e;color:#d0d0d0;}"

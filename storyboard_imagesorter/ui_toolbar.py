@@ -111,12 +111,12 @@ class ToolbarMixin:
         tb.setSpacing(5)
 
         b_add = QPushButton("＋ Import")
-        b_add.setToolTip("Import images — summary file in the same folder is applied automatically")
+        b_add.setToolTip("Import images — Ctrl+O\nSummary file in the same folder is applied automatically")
         b_add.clicked.connect(self._add_files_dialog)
         b_add.setStyleSheet(utils_workers._btn("#1a6b3a", "#1f8348"))
 
         b_rem = QPushButton("✕ Remove")
-        b_rem.setToolTip("Remove selected image(s) from the sequence")
+        b_rem.setToolTip("Remove selected image(s) from the sequence — Del")
         b_rem.clicked.connect(self._remove_selected)
         b_rem.setStyleSheet(utils_workers._btn("#6b1a1a", "#8a2020"))
 

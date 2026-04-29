@@ -686,7 +686,8 @@ class AboutDialog(QDialog):
             "Main View": [
                 ("Space", "Open / Close Full-screen Lightbox"),
                 ("Ctrl + A / Ctrl + D", "Select All / Deselect All"),
-                ("Ctrl + Z / Ctrl + Y / Ctrl + Shift + Z", "Undo / Redo last action"),
+                ("Ctrl + A / Ctrl + D", "Select All / Deselect All"),
+                ("Ctrl + O", "Open Import dialog"),
                 ("Ctrl + Shift + C", "Clear colors from selected"),
                 ("Delete", "Remove selected images"),
                 ("W", "Move selected to Stash"),

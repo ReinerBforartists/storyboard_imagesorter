@@ -759,6 +759,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                 if is_ctrl and key == Qt.Key.Key_D:
                     self._deselect_all()
                     return True
+                if is_ctrl and key == Qt.Key.Key_O:
+                    self._add_files_dialog()
+                    return True
                 if key == Qt.Key.Key_Delete:
                     self._remove_selected()
                     return True

@@ -4,8 +4,8 @@
 
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(0, 9, 1, 0),
-    prodvers=(0, 9, 1, 0),
+    filevers=(0, 9, 2, 0),
+    prodvers=(0, 9, 2, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -21,12 +21,12 @@ VSVersionInfo(
           [
             StringStruct(u'CompanyName', u'Haizy Tiles'),
             StringStruct(u'FileDescription', u'Storyboard Imagesorter'),
-            StringStruct(u'FileVersion', u'0.9.1.0'),
+            StringStruct(u'FileVersion', u'0.9.2.0'),
             StringStruct(u'InternalName', u'storyboard_imagesorter'),
             StringStruct(u'LegalCopyright', u'Copyright (C) 2026 by Reiner Prokein (Haizy Tiles)'),
             StringStruct(u'OriginalFilename', u'storyboard_imagesorter.exe'),
             StringStruct(u'ProductName', u'Storyboard Imagesorter'),
-            StringStruct(u'ProductVersion', u'0.9.1.0')
+            StringStruct(u'ProductVersion', u'0.9.2.0')
           ]
         )
       ]

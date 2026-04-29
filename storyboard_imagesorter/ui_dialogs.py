@@ -645,7 +645,7 @@ class AboutDialog(QDialog):
         lay.addWidget(icon)
 
         # Title section
-        title = QLabel("Storyboard Imagesorter v0.9.1")
+        title = QLabel("Storyboard Imagesorter v0.9.2")
         title.setFont(QFont("Arial", 17, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet("color:#4d8fcc;")

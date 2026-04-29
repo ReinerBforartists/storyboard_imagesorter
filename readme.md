@@ -54,6 +54,7 @@ Need to fix a drawing? Double-click an image to open it in your preferred editor
 | :--- | :--- |
 | `Space` | Open / Close Full-screen Lightbox |
 | `Ctrl + A` / `Ctrl + D` | Select All / Deselect All |
+| `Ctrl + O` | Open Import dialog |
 | `Ctrl + Z` / `Ctrl + Y` / `Ctrl + Shift + Z` | Undo / Redo last action |
 | `Ctrl + Shift + C` | Clear colors from selected images |
 | `Delete` | Remove selected images |

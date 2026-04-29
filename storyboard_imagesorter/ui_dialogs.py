@@ -674,47 +674,53 @@ class AboutDialog(QDialog):
         sep.setStyleSheet("color:#383838;")
         lay.addWidget(sep)
 
-        # Hotkeys section
+        # ─── Hotkeys section ─────────────────────────────────────────────────────
         hotkey_title = QLabel("Keyboard & Mouse Shortcuts")
         hotkey_title.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         hotkey_title.setStyleSheet("color:#4d8fcc;margin-top:2px;")
         hotkey_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(hotkey_title)
 
-        hotkeys = [
-            ("Space", "Open / Close Lightbox"),
-            ("Escape", "Close Lightbox"),
-            ("← → (in Lightbox)", "Previous / Next image"),
-            ("Scroll (in Lightbox)", "Previous / Next image"),
-            ("W (in Lightbox)", "Move to Stash"),
-            ("Delete (in Lightbox)", "Remove image"),
-            ("+ / -", "Zoom in / out"),
-            ("Ctrl + A", "Select all"),
-            ("Ctrl + D", "Deselect all"),
-            ("Ctrl + Z", "Undo"),
-            ("Ctrl + Y / Ctrl + Shift + Z", "Redo"),
-            ("Ctrl + Shift + C", "Clear colors from selected"),
-            ("Delete", "Remove selected images"),
-            ("W", "Move selected to Stash"),
-            ("← → (Main View)", "Move selected images"),
-            ("Ctrl + ← / →", "Move selection to Start / End"),
-            ("F", "Focus view on first selected image"),
-            ("Home / Pos 1", "Jump to first image"),
-            ("End / Ende", "Jump to last image"),
-            ("Page Up / Page Down", "Scroll through images"),
-            ("Tab", "Toggle Stash open / closed"),
-            ("B", "Toggle Sidebar open / closed"),
-            ("Shift + Click", "Extend selection"),
-            ("Ctrl + Click", "Toggle single image selection"),
-            ("Mouse Drag (empty area)", "Rectangle / lasso selection"),
-            ("Drag Image(s)", "Reorder via Drag & Drop"),
-            ("Double-Click", "Open in system viewer"),
-            ("Drag → Stash", "Move to stash"),
-            ("Double-Click Stash", "Return image to main view"),
-            ("Shift + Scroll", "Fast scroll through images"),
-            ("Right-Click (Color)", "Select cards by color"),
-            ("Shift + Right-Click (Color)", "Add color selection"),
-        ]
+        # Structured hotkeys dictionary
+        hotkeys_data = {
+            "Main View": [
+                ("Space", "Open / Close Full-screen Lightbox"),
+                ("Ctrl + A / Ctrl + D", "Select All / Deselect All"),
+                ("Ctrl + Z / Ctrl + Y / Ctrl + Shift + Z", "Undo / Redo last action"),
+                ("Ctrl + Shift + C", "Clear colors from selected"),
+                ("Delete", "Remove selected images"),
+                ("W", "Move selected to Stash"),
+                ("← / → (Arrows)", "Move selection left or right"),
+                ("Ctrl + ← / → (Arrows)", "Move selection to Start / End"),
+                ("F", "Focus view on first selected image"),
+                ("Home / Pos 1", "Jump to first image"),
+                ("End / Ende", "Jump to last image"),
+                ("Page Up / Page Down", "Scroll through images"),
+                ("Tab", "Toggle Stash open / closed"),
+                ("B", "Toggle Sidebar open / closed"),
+                ("+ / -", "Zoom in / out of the canvas"),
+                ("Scroll", "Scroll through sequences"),
+                ("Shift + Scroll", "**Fast scroll** through large sequences"),
+                ("Right-Click (Color)", "Select all cards with this color"),
+                ("Shift + Right-Click (Color)", "Add color to current selection"),
+            ],
+            "Lightbox Mode": [
+                ("Esc / Space", "Close Lightbox"),
+                ("← / → (Arrows)", "Previous / Next image"),
+                ("Scroll", "Previous / Next image"),
+                ("W", "Move current image to Stash"),
+                ("Delete", "Remove current image"),
+            ],
+            "Mouse & Interactions": [
+                ("Shift + Click", "Extend selection"),
+                ("Ctrl + Click", "Toggle single image selection"),
+                ("Mouse Drag (empty area)", "Rectangle / lasso selection"),
+                ("Drag Image(s)", "Reorder via Drag & Drop"),
+                ("Double-Click", "Open in system viewer"),
+                ("Drag → Stash", "Move to stash"),
+                ("Double-Click Stash", "Return image to main view"),
+            ]
+        }
 
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
@@ -731,20 +737,28 @@ class AboutDialog(QDialog):
         grid.setContentsMargins(12, 8, 12, 8)
         grid.setSpacing(3)
 
-        for key, desc_text in hotkeys:
-            row = QHBoxLayout()
-            row.setSpacing(8)
-            k_lbl = QLabel(key)
-            k_lbl.setStyleSheet("color:#e0e0e0;font-family:monospace;font-size:11px;min-width:160px;")
-            d_lbl = QLabel(desc_text)
-            d_lbl.setStyleSheet("color:#bbb;font-size:11px;")
-            row.addWidget(k_lbl)
-            row.addWidget(d_lbl, 1)
-            grid.addLayout(row)
+        # Iterating through categories
+        for section_name, shortcuts in hotkeys_data.items():
+            # Add Section Header
+            header_lbl = QLabel(section_name)
+            header_lbl.setStyleSheet("color:#4d8fcc; font-weight:bold; font-size:12px; margin-top:10px; margin-bottom:2px;")
+            grid.addWidget(header_lbl)
+
+            for key, desc_text in shortcuts:
+                row = QHBoxLayout()
+                row.setSpacing(8)
+                k_lbl = QLabel(key)
+                k_lbl.setStyleSheet("color:#e0e0e0;font-family:monospace;font-size:11px;min-width:160px;")
+                d_lbl = QLabel(desc_text)
+                d_lbl.setStyleSheet("color:#bbb;font-size:11px;")
+                row.addWidget(k_lbl)
+                row.addWidget(d_lbl, 1)
+                grid.addLayout(row)
 
         scroll_area.setWidget(grid_widget)
         scroll_area.setFixedHeight(280)
         lay.addWidget(scroll_area)
+
 
         # Bottom button row
         btn_row = QHBoxLayout()

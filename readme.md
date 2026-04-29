@@ -52,32 +52,45 @@ Need to fix a drawing? Double-click an image to open it in your preferred editor
 ### Main View
 | Shortcut | Action |
 | :--- | :--- |
-| `Space` | Open/Close Full-screen Lightbox |
-| `Ctrl + Z` / `Ctrl + Y` | Undo / Redo last action |
+| `Space` | Open / Close Full-screen Lightbox |
 | `Ctrl + A` / `Ctrl + D` | Select All / Deselect All |
-| `Delete` | Remove selection from the sequence |
-| `F` | Scrolls the view to the first selected card |
-| `Tab` | Hide/Show the Stash at the bottom |
-| `B` | Hide/Show the Color Sidebar |
+| `Ctrl + Z` / `Ctrl + Y` / `Ctrl + Shift + Z` | Undo / Redo last action |
+| `Ctrl + Shift + C` | Clear colors from selected images |
+| `Delete` | Remove selected images |
+| `W` | Move selected images to Stash |
 | `←` / `→` (Arrows) | Move selection left or right |
 | `Ctrl + ←` / `→` (Arrows) | Move selection to Start / End |
-| `Plus` / `Minus` | Zoom in and out of the canvas |
-| `Scroll` | Scroll through sequences |
+| `F` | Focus view on first selected image |
+| `Home` / `Pos 1` | Jump to first image |
+| `End` / `Ende` | Jump to last image |
+| `Page Up` / `Page Down` | Scroll through images |
+| `Tab` | Toggle Stash open / closed |
+| `B` | Toggle Sidebar open / closed |
+| `+` / `-` | Zoom in / out of the canvas |
+| `Scroll` | Scroll through images |
 | `Shift + Scroll` | **Fast scroll** through large sequences |
 | `Right-Click (Color)` | Select all cards with this color |
-| `Shift + Right-Click` | Add color to current selection |
-| `Home / Pos 1` | Set view to first image |
-| `End / Ende` | Set view to last image |
-| `Page Up` | Scroll through the list |
-| `Page Down` | Scroll through the list |
-
+| `Shift + Right-Click (Color)` | Add color to current selection |
 
 ### Lightbox Mode (Full-screen)
 | Shortcut | Action |
 | :--- | :--- |
 | `Esc` / `Space` | Close Lightbox |
-| `←` / `↑` (Arrows) | Previous image |
-| `→` / `↓` (Arrows) | Next image |
+| `←` / `→` (Arrows) | Previous / Next image |
+| `Scroll` | Previous / Next image |
+| `W` | Move current image to Stash |
+| `Delete` | Remove current image |
+
+### Mouse & Interactions
+| Shortcut | Action |
+| :--- | :--- |
+| `Shift + Click` | Extend selection |
+| `Ctrl + Click` | Toggle single image selection |
+| `Mouse Drag (empty area)` | Rectangle / lasso selection |
+| `Drag Image(s)` | Reorder via Drag & Drop |
+| `Double-Click` | Open in system viewer |
+| `Drag → Stash` | Move to stash |
+| `Double-Click Stash` | Return image to main view |
 
 ---
 

@@ -762,6 +762,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
                 if key == Qt.Key.Key_Delete:
                     self._remove_selected()
                     return True
+                if key == Qt.Key.Key_W:
+                    self._move_selected_to_stash()
+                    return True
                 if key == Qt.Key.Key_F:
                     self._scroll_to_selected()
                     return True
@@ -789,6 +792,12 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             for d in data:
                 self._watcher.removePath(d['path'])
         self.undo_stack.push(commands.RemoveSelectedCommand(self, data))
+
+    def _move_selected_to_stash(self):
+        paths = [c.path for c in self.cards if c._selected]
+        if not paths:
+            return
+        self.undo_stack.push(commands.MoveToStashCommand(self, paths))
 
     def _deselect_all(self):
         for c in self.cards:
@@ -844,6 +853,9 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         menu.addAction("🔄 Reverse Order", lambda: self._sort_by('reverse'))
         menu.addSeparator()
         menu.addAction("🎯 Focus selected\tF", self._scroll_to_selected)
+        menu.addSeparator()
+        menu.addAction("↓ Move to Stash\tW", self._move_selected_to_stash)
+        menu.addAction("🔍 Lightbox\tSpace", self._open_lightbox)
 
         btn = self.sender()
         if btn:

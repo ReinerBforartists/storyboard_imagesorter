@@ -685,6 +685,9 @@ class AboutDialog(QDialog):
             ("Space", "Open / Close Lightbox"),
             ("Escape", "Close Lightbox"),
             ("← → (in Lightbox)", "Previous / Next image"),
+            ("Scroll (in Lightbox)", "Previous / Next image"),
+            ("W (in Lightbox)", "Move to Stash"),
+            ("Delete (in Lightbox)", "Remove image"),
             ("+ / -", "Zoom in / out"),
             ("Ctrl + A", "Select all"),
             ("Ctrl + D", "Deselect all"),
@@ -692,6 +695,7 @@ class AboutDialog(QDialog):
             ("Ctrl + Y / Ctrl + Shift + Z", "Redo"),
             ("Ctrl + Shift + C", "Clear colors from selected"),
             ("Delete", "Remove selected images"),
+            ("W", "Move selected to Stash"),
             ("← → (Main View)", "Move selected images"),
             ("Ctrl + ← / →", "Move selection to Start / End"),
             ("F", "Focus view on first selected image"),
@@ -870,7 +874,7 @@ class Lightbox(QDialog):
         self.remove_btn = QPushButton("✕ Remove", self)
         self.remove_btn.setFixedSize(95, 28)
         self.remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.remove_btn.setToolTip("Remove image")
+        self.remove_btn.setToolTip("Remove image\tDEL")
         self.remove_btn.setStyleSheet("""
             QPushButton { background:#3a1a1a; color:#d0d0d0; border:1px solid #5a2020; border-radius:4px; font-size:14px; }
             QPushButton:hover { background:#5a2020; border-color:#8a3030; }
@@ -883,7 +887,7 @@ class Lightbox(QDialog):
         self.stash_btn = QPushButton("↓ Move to Stash", self)
         self.stash_btn.setFixedSize(128, 28)
         self.stash_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.stash_btn.setToolTip("Move image to stash")
+        self.stash_btn.setToolTip("Move image to stash\tW")
         self.stash_btn.setStyleSheet("""
             QPushButton { background:#1a3a6a; color:#d0d0d0; border:1px solid #2d5a9a; border-radius:4px; font-size:14px; }
             QPushButton:hover { background:#2d5a9a; border-color:#4d8fcc; }
@@ -1147,6 +1151,16 @@ class Lightbox(QDialog):
 
         p.end()
 
+    def wheelEvent(self, event) -> None:
+        delta = event.angleDelta().y()
+        if delta < 0 and self.index < len(self.sorter.cards) - 1:
+            self.index += 1
+            self._load_current()
+        elif delta > 0 and self.index > 0:
+            self.index -= 1
+            self._load_current()
+        event.accept()
+
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             if self.close_btn.geometry().contains(event.pos()):
@@ -1186,6 +1200,16 @@ class Lightbox(QDialog):
             if self.index < len(self.sorter.cards) - 1:
                 self.index += 1
                 self._load_current()
+            event.accept()
+            return
+
+        if k == Qt.Key.Key_W:
+            self._on_move_to_stash()
+            event.accept()
+            return
+
+        if k == Qt.Key.Key_Delete:
+            self._on_remove()
             event.accept()
             return
 

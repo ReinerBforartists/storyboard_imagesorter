@@ -87,9 +87,9 @@ class ColorSidebar(QWidget):
             btn.customContextMenuRequested.connect(lambda pos, c=color: self.sorter._select_by_color(c))
             btn.setToolTip(
                 f"{name}\n"
-                f"Left click to apply to selected\n"
-                f"Right click to select cards with this color\n"
-                f"Shift + right click to add to the current selection"
+                f"Left click — apply to selected\n"
+                f"Right click — select all cards with this color\n"
+                f"Shift+right click — add to current selection"
             )
             btn.setStyleSheet(f"""
                 QPushButton {{
@@ -130,7 +130,7 @@ class ColorSidebar(QWidget):
         self.open_picker_btn = QPushButton("🎨")
         self.open_picker_btn.setFixedSize(32, 20)
         self.open_picker_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.open_picker_btn.setToolTip("Open color picker to change the custom color")
+        self.open_picker_btn.setToolTip("Open color picker to set the custom color")
         self.open_picker_btn.setStyleSheet("""
             QPushButton {
                 background: #2a2a2a;
@@ -158,7 +158,7 @@ class ColorSidebar(QWidget):
         self.clear_btn = QPushButton("∅")
         self.clear_btn.setFixedSize(32, 32)
         self.clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.clear_btn.setToolTip("Clear colors from selected (C)")
+        self.clear_btn.setToolTip("Clear color tags from selected\nC")
         self.clear_btn.setStyleSheet("""
             QPushButton {
                 background: #2a2a2a;
@@ -180,10 +180,10 @@ class ColorSidebar(QWidget):
         """Updates the appearance of the custom color button to reflect the current custom color."""
         color = self._current_custom_color or "#ffffff"
         self.custom_color_btn.setToolTip(
-            f"Custom: {color}\n"
-            f"Left click to apply to selected\n"
-            f"Right click to select cards with this color\n"
-            f"Shift + right click to add to the current selection"
+            f"Custom color: {color}\n"
+            f"Left click — apply to selected\n"
+            f"Right click — select all cards with this color\n"
+            f"Shift+right click — add to current selection"
         )
         self.custom_color_btn.setStyleSheet(f"""
             QPushButton {{

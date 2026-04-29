@@ -57,7 +57,7 @@ class ToolbarMixin:
         body_layout.addWidget(self.sidebar)
 
         self.sidebar_toggle = QPushButton("‹")
-        self.sidebar_toggle.setToolTip("Toggle Sidebar (B)")
+        self.sidebar_toggle.setToolTip("Toggle sidebar\nB")
         self.sidebar_toggle.setFixedSize(16, 30)
         self.sidebar_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.sidebar_toggle.setStyleSheet("""
@@ -111,12 +111,12 @@ class ToolbarMixin:
         tb.setSpacing(5)
 
         b_add = QPushButton("＋ Import")
-        b_add.setToolTip("Import images — Ctrl+O\nSummary file in the same folder is applied automatically")
+        b_add.setToolTip("Import images\nSummary file in the same folder is applied automatically\nCtrl+O")
         b_add.clicked.connect(self._add_files_dialog)
         b_add.setStyleSheet(utils_workers._btn("#1a6b3a", "#1f8348"))
 
         b_rem = QPushButton("✕ Remove")
-        b_rem.setToolTip("Remove selected image(s) from the sequence — Del")
+        b_rem.setToolTip("Remove selected image(s) from the sequence\nDel")
         b_rem.clicked.connect(self._remove_selected)
         b_rem.setStyleSheet(utils_workers._btn("#6b1a1a", "#8a2020"))
 
@@ -139,29 +139,29 @@ class ToolbarMixin:
 
         # Undo / Redo Group
         b_undo = QPushButton("↺")
-        b_undo.setToolTip("Undo (Ctrl+Z)")
+        b_undo.setToolTip("Undo\nCtrl+Z")
         b_undo.clicked.connect(self.undo_stack.undo)
         b_redo = QPushButton("↻")
-        b_redo.setToolTip("Redo (Ctrl+Y)")
+        b_redo.setToolTip("Redo\nCtrl+Y")
         b_redo.clicked.connect(self.undo_stack.redo)
 
         # Movement Group (Step by step and Absolute jumps)
         b_start = QPushButton("⇠|")
-        b_start.setToolTip("Move selection to START (Ctrl + ←)")
+        b_start.setToolTip("Move selection to start\nCtrl+←")
         b_start.clicked.connect(lambda: self._move_selection_absolute("start"))
 
         b_bk = QPushButton("⇠")
-        b_bk.setToolTip("Move selection left (←)\nCtrl + ← : Move selection to Start")
+        b_bk.setToolTip("Move selection one step left\n← / Ctrl+← to move to start")
         # Modified: Check for Ctrl modifier during click
         b_bk.clicked.connect(lambda: self._move_selected_with_modifier(-1))
 
         b_fw = QPushButton("⇢")
-        b_fw.setToolTip("Move selection right (→)\nCtrl + → : Move selection to End")
+        b_fw.setToolTip("Move selection one step right\n→ / Ctrl+→ to move to end")
         # Modified: Check for Ctrl modifier during click
         b_fw.clicked.connect(lambda: self._move_selected_with_modifier(1))
 
         b_end = QPushButton("|⇢")
-        b_end.setToolTip("Move selection to END (Ctrl + →)")
+        b_end.setToolTip("Move selection to end\nCtrl+→")
         b_end.clicked.connect(lambda: self._move_selection_absolute("end"))
 
         # Apply styles to all movement/undo buttons
@@ -235,7 +235,7 @@ class ToolbarMixin:
         lbl_z = QLabel("Zoom")
         lbl_z.setStyleSheet("font-size:11px;color:#bbb;")
         self.zoom_box = QComboBox()
-        self.zoom_box.setToolTip("Zoom (Ctrl + Scroll Wheel)")
+        self.zoom_box.setToolTip("Zoom\nCtrl+Scroll")
         for z in constants.ZOOM_STEPS:
             self.zoom_box.addItem(f"{z}%", z)
         self.zoom_box.setCurrentIndex(constants.ZOOM_STEPS.index(100))

@@ -889,7 +889,7 @@ class Lightbox(QDialog):
         self.remove_btn = QPushButton("✕ Remove", self)
         self.remove_btn.setFixedSize(95, 28)
         self.remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.remove_btn.setToolTip("Remove image\tDEL")
+        self.remove_btn.setToolTip("Remove image\nDel")
         self.remove_btn.setStyleSheet("""
             QPushButton { background:#3a1a1a; color:#d0d0d0; border:1px solid #5a2020; border-radius:4px; font-size:14px; }
             QPushButton:hover { background:#5a2020; border-color:#8a3030; }
@@ -902,7 +902,7 @@ class Lightbox(QDialog):
         self.stash_btn = QPushButton("↓ Move to Stash", self)
         self.stash_btn.setFixedSize(128, 28)
         self.stash_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.stash_btn.setToolTip("Move image to stash\tW")
+        self.stash_btn.setToolTip("Move image to stash\nW")
         self.stash_btn.setStyleSheet("""
             QPushButton { background:#1a3a6a; color:#d0d0d0; border:1px solid #2d5a9a; border-radius:4px; font-size:14px; }
             QPushButton:hover { background:#2d5a9a; border-color:#4d8fcc; }

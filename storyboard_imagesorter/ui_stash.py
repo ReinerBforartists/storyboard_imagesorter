@@ -401,7 +401,7 @@ class StashZone(QWidget):
             "font-size:11px;text-align:right;padding:0;}"
             "QPushButton:hover{color:#eee;}"
         )
-        self.toggle_btn.setToolTip("Toggle Stash (Tab)")
+        self.toggle_btn.setToolTip("Toggle stash\nTab")
         self.toggle_btn.clicked.connect(self.toggle)
         h_lay.addWidget(self.toggle_btn)
 

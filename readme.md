@@ -4,7 +4,7 @@
 
 **Organize your storyboard frames and image sequences quickly and visually.**
 
-Storyboard Imagesorter is a lightweight tool designed for artists, animators, and previs professionals. Drag in your image files, sort them into a sequence, tag them with colors, add notes, and export — all without a complex project setup.
+Storyboard Imagesorter is a lightweight tool designed for artists, animators, and previs professionals. Drag in your image files, sort them into a sequence, tag them with colors, add notes, and export, all without a complex project setup.
 
 ---
 
@@ -41,6 +41,7 @@ Double-click an image to open it in your system's default editor. Once you save 
 ### 5. Export and "Save" your work
 Use the ↓ Export menu to create a numbered image sequence, a Contact Sheet, or a Storyboard List with your notes alongside the artwork.
 > **Your originals are never touched.** Exporting always creates copies in a new folder — your source files stay exactly where they are.
+
 > **Saving your progress:** Every export also writes a `_sorter_data.txt` file next to your images. This file stores all your colors and notes. To reload a previous session, drag that file into the application window.
 
 ---

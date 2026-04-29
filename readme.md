@@ -117,7 +117,9 @@ The application is provided as a standalone executable.
 2. Run the `.exe` directly.
 
 ### macOS & Linux (Source Distribution)
-For macOS and Linux, it is recommended to run via a Python virtual environment.
+
+I don't have a Mac, so no binary, sorry. Please run it in a venv.
+For Linux there is a Deb available. But you can also run via a Python virtual environment.
 
 1. **Clone this repository:**
    ```bash

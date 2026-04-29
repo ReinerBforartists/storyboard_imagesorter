@@ -4,7 +4,7 @@
 
 **Organize your storyboard frames and image sequences quickly and visually.**
 
-Storyboard Imagesorter is a lightweight, intuitive tool designed for artists, animators, and previs professionals. It allows you to take image files and turn them into an organized sequence of images. You can work with color tags, text notes, and export layouts.
+Storyboard Imagesorter is a lightweight tool designed for artists, animators, and previs professionals. Drag in your image files, sort them into a sequence, tag them with colors, add notes, and export — all without a complex project setup.
 
 ---
 
@@ -23,27 +23,25 @@ Storyboard Imagesorter is a lightweight, intuitive tool designed for artists, an
 ## 🚀 User Guide (Workflow)
 
 ### 1. Import your images
-* **Drag & Drop:** Select image files from your file explorer and drag them directly into the window, or click the **"＋ Import"** button.
-* **Auto-Magic Import:** If you import images from a folder that already contains a `_sorter_data.txt` file, the tool will **automatically** detect it and restore all your colors and notes for those images instantly.
+* **Drag & Drop:** Drag image files directly into the window, or use the ＋ Import button.
+* **Auto-restore:** If the folder you import from already contains a `_sorter_data.txt` file, you can restore colors and notes by importing it.
 
 ### 2. Organize your sequence
-* **Reorder:** Click and drag any image to move it to a new position.
-* **Move Groups:** Use the arrow buttons in the top toolbar to shift selected groups of images left or right.
-* **The Stash:** If you have images that don't belong in your current sequence, drag them into the **Stash Zone** at the bottom. They are "parked" there and can be brought back later without being deleted.
+* **Reorder:** Click and drag any image to a new position.
+* **Move Groups:** Select multiple images and use the arrow buttons in the toolbar to shift them left or right.
+* **The Stash:** Images that don't belong in your current sequence can be parked in the Stash at the bottom of the window. They stay available and can be returned to the main view at any time.
 
-### 3. Add details (Notes & Colors)
-* **Color Tagging:** Use the sidebar on the left to quickly tap a color onto your selected images (e.g., Blue for "Close-up", Red for "Action").
-* **Writing Notes:** Click the **"📝 + Add Note"** button on any image card to type in descriptions, camera angles, or timing info.
+### 3. Add colors and notes
+* **Color tags:** Use the sidebar on the left to quickly tap a color onto your selected images (e.g., Blue for "Close-up", Red for "Action").
+* **Notes:** Click 📝 Add Note on any image card to add descriptions, camera angles, or timing info.
 
-### 4. Edit and see changes live
-Need to fix a drawing? Double-click an image to open it in your preferred editor (like Photoshop or Krita). Once you hit **Save** in that program, the thumbnail in the Imagesorter updates automatically via our live file watcher.
+### 4. Edit images and see changes live
+Double-click an image to open it in your system's default editor. Once you save there, the thumbnail in Imagesorter updates automatically.
 
-### 5. Export and "Save" your project
-* **To get your final files:** Use the **"↓ Export"** menu. You can create a clean, numbered image sequence, or professional layouts like **Contact Sheets** (for quick review) or **Storyboard Lists** (to see your notes alongside the art).
-* **⚠️ IMPORTANT - Image Sequence Export:** When exporting an image sequence, the tool creates **copies** of your images in a new folder with sequential names (e.g., `prefix_01.png`). Your original source files remain completely untouched and unchanged in their original location.
-* **⚠️ IMPORTANT - Saving your progress:** When you export, the tool creates a small file called `_sorter_data.txt`. **This is your project's "brain".** It contains all your colors and text notes. 
-    * Keep this file safe! 
-    * To reload your work later, simply **drag and drop the `_sorter_data.txt` file directly into the application window**. All your annotations will be restored instantly.
+### 5. Export and "Save" your work
+Use the ↓ Export menu to create a numbered image sequence, a Contact Sheet, or a Storyboard List with your notes alongside the artwork.
+> **Your originals are never touched.** Exporting always creates copies in a new folder — your source files stay exactly where they are.
+> **Saving your progress:** Every export also writes a `_sorter_data.txt` file next to your images. This file stores all your colors and notes. To reload a previous session, drag that file into the application window.
 
 ---
 
@@ -93,33 +91,22 @@ Need to fix a drawing? Double-click an image to open it in your preferred editor
 | `Drag → Stash` | Move to stash |
 | `Double-Click Stash` | Return image to main view |
 
----
-
-## 🛠️ Technical Specifications
-
-For developers and technical users:
-
-* **Core Stack:** Python 3.10+ and PyQt6.
-* **Architecture:** 
-    * Implements the **Command Pattern** for a robust Undo/Redo system across all manipulations (sorting, tagging, moving, deleting).
-    * Uses a custom **Flow Layout** engine for dynamic image arrangement.
-    * Features a background **File Watcher** service to monitor file system changes for real-time thumbnail synchronization.
-* **Data Management:** Metadata (colors/notes) is handled via a lightweight text-based exchange format (`_sorter_data.txt`), allowing for easy project reloading without proprietary database overhead.
 
 ---
 
 ## ⚙️ Installation & Execution
 
 ### Windows
-The application is provided as a standalone executable.
-1. Download the `storyboard_imagesorter.zip` from the [Releases](#) page.
-2. Extract the Zipfile
-2. Run the `.exe` directly.
+1. Download `storyboard_imagesorter.zip` from the Releases page.
+2. Extract the archive.
+3. Run `storyboard_imagesorter.exe` directly — no installation required.
+
+### Linux
+A `.deb` package is available on the Releases page. Alternatively, run from source using the instructions below.
 
 ### macOS & Linux (Source Distribution)
 
-I don't have a Mac, so no binary, sorry. Please run it in a venv.
-For Linux there is a Deb available. But you can also run via a Python virtual environment.
+For Linux there is a Deb available. No macOS binary is available at this time. You can run both from source via a Python virtual environment:
 
 1. **Clone this repository:**
    ```bash
@@ -144,11 +131,21 @@ For Linux there is a Deb available. But you can also run via a Python virtual en
    cd storyboard_imagesorter
    python storyboard_imagesorter.py
    ```
+---
+
+## 🛠️ Technical Specifications
+
+For developers and technical users:
+
+* **Core Stack:** Python 3.10+ and PyQt6.
+* **Architecture:** 
+    * Implements the **Command Pattern** for a robust Undo/Redo system across all manipulations (sorting, tagging, moving, deleting).
+    * Uses a custom **Flow Layout** engine for dynamic image arrangement.
+    * Features a background **File Watcher** service to monitor file system changes for real-time thumbnail synchronization.
+* **Data Management:** Metadata (colors/notes) is handled via a lightweight text-based exchange format (`_sorter_data.txt`), allowing for easy project reloading without proprietary database overhead.
 
 ---
 
-**License:** GNU General Public License v3.0
-
 **Feedback and Pull Requests are welcome!**
 
-Copyright © 2026 with ❤️ by Reiner Prokein (Haizy Tiles) 
+License: GNU General Public License v3.0 · Copyright © 2026 Reiner Prokein (Haizy Tiles)

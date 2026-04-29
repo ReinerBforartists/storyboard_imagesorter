@@ -158,7 +158,7 @@ class ColorSidebar(QWidget):
         self.clear_btn = QPushButton("∅")
         self.clear_btn.setFixedSize(32, 32)
         self.clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.clear_btn.setToolTip("Clear colors from selected (Ctrl+Shift+C)")
+        self.clear_btn.setToolTip("Clear colors from selected (C)")
         self.clear_btn.setStyleSheet("""
             QPushButton {
                 background: #2a2a2a;

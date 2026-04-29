@@ -688,7 +688,7 @@ class AboutDialog(QDialog):
                 ("Ctrl + A / Ctrl + D", "Select All / Deselect All"),
                 ("Ctrl + A / Ctrl + D", "Select All / Deselect All"),
                 ("Ctrl + O", "Open Import dialog"),
-                ("Ctrl + Shift + C", "Clear colors from selected"),
+                ("C", "Clear colors from selected"),
                 ("Delete", "Remove selected images"),
                 ("W", "Move selected to Stash"),
                 ("← / → (Arrows)", "Move selection left or right"),

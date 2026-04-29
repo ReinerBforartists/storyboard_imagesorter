@@ -690,7 +690,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
             if key == Qt.Key.Key_B and not is_ctrl:
                 self._toggle_sidebar()
                 return True
-            if is_ctrl and is_shift and key == Qt.Key.Key_C:
+            if key == Qt.Key.Key_C:
                 self._clear_selected_colors()
                 return True
             if key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal) and not is_ctrl:

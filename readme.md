@@ -48,6 +48,8 @@ Use the ↓ Export menu to create a numbered image sequence, a Contact Sheet, or
 
 ## ⌨️ Keyboard Shortcuts
 
+Note that most shortcuts are optional.
+
 ### Main View
 | Shortcut | Action |
 | :--- | :--- |

@@ -38,34 +38,15 @@ from PyQt6.QtWidgets import (
 import utils_workers
 from commands import RemoveSelectedCommand, MoveToStashCommand
 import ui_components
-
+import ui_styles
 
 # ─── SHARED HELPERS ──────────────────────────────────────────────────────────
 
-_FOLDER_ROW_STYLE = (
-    "background:#252525;color:#d0d0d0;border:1px solid #404040;"
-    "border-radius:4px;padding:2px 4px;min-height:26px;"
-)
-_CHOOSE_BTN_STYLE = (
-    "QPushButton{background:#2a2a2a;color:#d0d0d0;border:1px solid #404040;"
-    "border-radius:4px;padding:2px 10px;min-height:26px;}"
-    "QPushButton:hover{background:#383838;}"
-)
-_COLLISION_STYLE_WARN = (
-    "background:#3a1010;color:#ff7070;border:1px solid #7a2020;"
-    "border-radius:4px;padding:4px 8px;font-size:11px;"
-)
-_EXPORT_BTN_STYLE = (
-    "QPushButton{background:#1a3f6f;color:#d0e8ff;border:1px solid #2d6fab;"
-    "border-radius:4px;padding:4px 18px;min-height:28px;font-weight:bold;}"
-    "QPushButton:hover{background:#245a9e;}"
-    "QPushButton:disabled{background:#252525;color:#555;border-color:#383838;}"
-)
-_CANCEL_BTN_STYLE = (
-    "QPushButton{background:#2a2a2a;color:#d0d0d0;border:1px solid #404040;"
-    "border-radius:4px;padding:4px 18px;min-height:28px;}"
-    "QPushButton:hover{background:#383838;}"
-)
+_FOLDER_ROW_STYLE = ui_styles.STYLE_INPUT
+_CHOOSE_BTN_STYLE = ui_styles.STYLE_BUTTON_DEFAULT
+_COLLISION_STYLE_WARN = ui_styles.STYLE_COLLISION_WARN
+_EXPORT_BTN_STYLE = ui_styles.STYLE_BUTTON_PRIMARY
+_CANCEL_BTN_STYLE = ui_styles.STYLE_BUTTON_DEFAULT
 
 
 def _make_folder_row(dialog, initial_dir=""):
@@ -109,7 +90,7 @@ class ExportPreviewDialog(QDialog):
         self._folder = initial_dir
         self.setWindowTitle("Export Images")
         self.setFixedWidth(500)  # Standardized width to match ContactSheetDialog
-        self.setStyleSheet("background:#1e1e1e;color:#d0d0d0;")
+        self.setStyleSheet(f"background:#1e1e1e;color:{ui_styles.TEXT_PRIMARY};")
         lay = QVBoxLayout(self)
         lay.setSpacing(8)
 
@@ -145,12 +126,7 @@ class ExportPreviewDialog(QDialog):
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setStyleSheet(
-            "QTableWidget{background:#252525;border:1px solid #383838;"
-            "gridline-color:#2e2e2e;}"
-            "QHeaderView::section{background:#2a2a2a;color:#ccc;border:none;padding:4px;}"
-            "QTableWidget::item{padding:3px 6px;}"
-        )
+        self.table.setStyleSheet(ui_styles.STYLE_TABLE)
         lay.addWidget(self.table)
 
         # --- Whitespace after preview table ---
@@ -208,15 +184,9 @@ class ExportPreviewDialog(QDialog):
         self.mapping_btn.setText(text)
 
         if checked:
-            self.mapping_btn.setStyleSheet(
-                "QPushButton{background:#172d4e;color:#4d8fcc;"
-                "border:1px solid #2d6fab;padding:5px 10px;text-align:left;}"
-            )
+            self.mapping_btn.setStyleSheet(ui_styles.STYLE_TOGGLE_ACTIVE)
         else:
-            self.mapping_btn.setStyleSheet(
-                "QPushButton{background:#2a2a2a;color:#eee;"
-                "border:1px solid #383838;padding:5px 10px;text-align:left;}"
-            )
+            self.mapping_btn.setStyleSheet(ui_styles.STYLE_TOGGLE_INACTIVE)
 
     def _trigger_update(self):
         """Starts/restarts the debounce timer."""
@@ -310,7 +280,7 @@ class ContactSheetDialog(QDialog):
         self._initial_dir = initial_dir
         self.setWindowTitle("Export Contact Sheet")
         self.setFixedWidth(500)  # Standardized width
-        self.setStyleSheet("background:#1e1e1e;color:#d0d0d0;")
+        self.setStyleSheet(f"background:#1e1e1e;color:{ui_styles.TEXT_PRIMARY};")
 
         # Setup Debounce Timer for consistency across dialogs
         self._update_timer = QTimer()
@@ -569,15 +539,9 @@ class ContactSheetDialog(QDialog):
         btn.setText(text)
 
         if checked:
-            btn.setStyleSheet(
-                "QPushButton{background:#172d4e;color:#4d8fcc;"
-                "border:1px solid #2d6fab;padding:5px 10px;text-align:left;}"
-            )
+            btn.setStyleSheet(ui_styles.STYLE_TOGGLE_ACTIVE)
         else:
-            btn.setStyleSheet(
-                "QPushButton{background:#2a2a2a;color:#eee;"
-                "border:1px solid #383838;padding:5px 10px;text-align:left;}"
-            )
+            btn.setStyleSheet(ui_styles.STYLE_TOGGLE_INACTIVE)
 
     def get_prefix(self):
         return self.prefix_edit.text()
@@ -619,11 +583,9 @@ class AboutDialog(QDialog):
         self.setMinimumWidth(440)
         self.setMaximumWidth(500)
         self.setStyleSheet(
-            "QDialog{background-color:#1e1e1e;color:#d0d0d0;}"
-            "QLabel{background:transparent;}"
-            "QPushButton{background-color:#2a2a2a;color:#d0d0d0;border:1px solid #404040;"
-            "border-radius:5px;padding:8px 20px;min-height:30px;}"
-            "QPushButton:hover{background-color:#3a3a3a;}"
+            f"QDialog{{background-color:#1e1e1e;color:{ui_styles.TEXT_PRIMARY};}}"
+            f"QLabel{{background:transparent;}}"
+            + ui_styles.STYLE_BUTTON_DEFAULT
         )
 
         lay = QVBoxLayout(self)
@@ -726,10 +688,8 @@ class AboutDialog(QDialog):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setStyleSheet(
-            "QScrollArea{border:none;background:transparent;}"
-            "QScrollBar:vertical{background:#181818;width:6px;}"
-            "QScrollBar::handle:vertical{background:#333;border-radius:3px;}"
-            "QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{height:0;}"
+            f"QScrollArea{{border:none;background:transparent;}}"
+            + ui_styles.STYLE_SCROLLBAR
         )
 
         grid_widget = QWidget()
@@ -872,10 +832,11 @@ class Lightbox(QDialog):
         self.close_btn = QPushButton("✕", self)
         self.close_btn.setFixedSize(32, 32)
         self.close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.close_btn.setStyleSheet("""
-            QPushButton { background: rgba(40, 40, 40, 180); color: white; border-radius: 16px; font-size: 16px; font-weight: bold; border: 1px solid rgba(255, 255, 255, 30); }
-            QPushButton:hover { background: rgba(200, 40, 40, 200); border: 1px solid white; }
-        """)
+        self.close_btn.setStyleSheet(
+            "QPushButton{background:rgba(40,40,40,180);color:white;border-radius:16px;"
+            f"font-size:16px;font-weight:bold;border:1px solid rgba(255,255,255,30);}}"
+            "QPushButton:hover{background:rgba(200,40,40,200);border:1px solid white;}"
+        )
         self.close_btn.clicked.connect(self.accept)
 
     def _setup_header_buttons(self) -> None:
@@ -890,24 +851,15 @@ class Lightbox(QDialog):
         self.remove_btn.setFixedSize(95, 28)
         self.remove_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.remove_btn.setToolTip("Remove image\nDel")
-        self.remove_btn.setStyleSheet("""
-            QPushButton { background:#3a1a1a; color:#d0d0d0; border:1px solid #5a2020; border-radius:4px; font-size:14px; }
-            QPushButton:hover { background:#5a2020; border-color:#8a3030; }
-            QPushButton:disabled { background:#2a2a2a; color:#555; border-color:#333; }
-        """)
+        self.remove_btn.setStyleSheet(ui_styles.STYLE_BUTTON_DANGER)
         self.remove_btn.clicked.connect(self._on_remove)
         lay.addWidget(self.remove_btn)
 
-        # Use a downward arrow icon to signify "stashing" or moving away
         self.stash_btn = QPushButton("↓ Move to Stash", self)
         self.stash_btn.setFixedSize(128, 28)
         self.stash_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.stash_btn.setToolTip("Move image to stash\nW")
-        self.stash_btn.setStyleSheet("""
-            QPushButton { background:#1a3a6a; color:#d0d0d0; border:1px solid #2d5a9a; border-radius:4px; font-size:14px; }
-            QPushButton:hover { background:#2d5a9a; border-color:#4d8fcc; }
-            QPushButton:disabled { background:#2a2a2a; color:#555; border-color:#333; }
-        """)
+        self.stash_btn.setStyleSheet(ui_styles.STYLE_BUTTON_PRIMARY)
         self.stash_btn.clicked.connect(self._on_move_to_stash)
         lay.addWidget(self.stash_btn)
 
@@ -919,9 +871,7 @@ class Lightbox(QDialog):
         """Create temporary status message label in the top-right corner."""
         self._message_label = QLabel("", self)
         self._message_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
-        self._message_label.setStyleSheet("""
-            QLabel { color: #4d8fcc; font-size: 12px; font-weight: bold; background: transparent; }
-        """)
+        self._message_label.setStyleSheet(ui_styles.STYLE_STATUS_LABEL)
         self._message_label.setVisible(False)
 
         self._message_timer = QTimer(self)

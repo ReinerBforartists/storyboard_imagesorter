@@ -24,6 +24,7 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QColorDialog, QFrame
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
+import ui_styles
 
 
 def _make_separator():
@@ -31,7 +32,7 @@ def _make_separator():
     sep = QFrame()
     sep.setFrameShape(QFrame.Shape.HLine)
     sep.setFixedHeight(1)
-    sep.setStyleSheet("background: #333; border: none; margin: 2px 0px;")
+    sep.setStyleSheet(ui_styles.STYLE_SEPARATOR)
     return sep
 
 
@@ -51,7 +52,7 @@ class ColorSidebar(QWidget):
     def _setup_ui(self):
         # Narrow width for a professional look
         self.setFixedWidth(50)
-        self.setStyleSheet("background:#141414; border-right: 1px solid #333;")
+        self.setStyleSheet(f"background:#141414;border-right:1px solid {ui_styles.BORDER_DEFAULT};")
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(5, 10, 5, 10)
@@ -131,20 +132,7 @@ class ColorSidebar(QWidget):
         self.open_picker_btn.setFixedSize(32, 20)
         self.open_picker_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.open_picker_btn.setToolTip("Open color picker to set the custom color")
-        self.open_picker_btn.setStyleSheet("""
-            QPushButton {
-                background: #2a2a2a;
-                color: white;
-                border: 1px solid #444;
-                border-radius: 3px;
-                font-size: 11px;
-                padding: 0px;
-            }
-            QPushButton:hover {
-                background: #3a3a3a;
-                border: 1px solid #4d8fcc;
-            }
-        """)
+        self.open_picker_btn.setStyleSheet(ui_styles.STYLE_BUTTON_SECONDARY)
         self.open_picker_btn.clicked.connect(self._open_color_dialog)
         custom_group_layout.addWidget(self.open_picker_btn)
 
@@ -159,19 +147,7 @@ class ColorSidebar(QWidget):
         self.clear_btn.setFixedSize(32, 32)
         self.clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.clear_btn.setToolTip("Clear color tags from selected\nC")
-        self.clear_btn.setStyleSheet("""
-            QPushButton {
-                background: #2a2a2a;
-                color: #e74c3c;
-                border: 1px solid #444;
-                border-radius: 4px;
-                font-size: 18px;
-            }
-            QPushButton:hover {
-                background: #3a2a2a;
-                border: 1px solid #e74c3c;
-            }
-        """)
+        self.clear_btn.setStyleSheet(ui_styles.STYLE_BUTTON_DANGER)
         self.clear_btn.clicked.connect(self.sorter._clear_selected_colors)
         layout.addWidget(self.clear_btn)
 

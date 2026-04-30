@@ -31,6 +31,7 @@ import utils_workers
 import ui_sidebar
 import ui_components
 import settings_manager
+import ui_styles
 
 
 class ToolbarMixin:
@@ -60,22 +61,7 @@ class ToolbarMixin:
         self.sidebar_toggle.setToolTip("Toggle sidebar\nB")
         self.sidebar_toggle.setFixedSize(16, 30)
         self.sidebar_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.sidebar_toggle.setStyleSheet("""
-            QPushButton {
-                background: #252525;
-                color: #888;
-                border: 1px solid #333;
-                border-left: none;
-                border-top-right-radius: 4px;
-                border-bottom-right-radius: 4px;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background: #333;
-                color: white;
-                border-left: 1px solid #4d8fcc;
-            }
-        """)
+        self.sidebar_toggle.setStyleSheet(ui_styles.STYLE_SIDEBAR_TOGGLE)
         self.sidebar_toggle.clicked.connect(self._toggle_sidebar)
         body_layout.addWidget(self.sidebar_toggle)
 
@@ -113,22 +99,22 @@ class ToolbarMixin:
         b_add = QPushButton("＋ Import")
         b_add.setToolTip("Import images\nSummary file in the same folder is applied automatically\nCtrl+O")
         b_add.clicked.connect(self._add_files_dialog)
-        b_add.setStyleSheet(utils_workers._btn("#1a6b3a", "#1f8348"))
+        b_add.setStyleSheet(ui_styles.STYLE_TB_ADD)
 
         b_rem = QPushButton("✕ Remove")
         b_rem.setToolTip("Remove selected image(s) from the sequence\nDel")
         b_rem.clicked.connect(self._remove_selected)
-        b_rem.setStyleSheet(utils_workers._btn("#6b1a1a", "#8a2020"))
+        b_rem.setStyleSheet(ui_styles.STYLE_TB_REMOVE)
 
         b_exp = QPushButton("↓ Export ▾")
         b_exp.setToolTip("Export images or contact sheet")
         b_exp.clicked.connect(self._show_export_menu)
-        b_exp.setStyleSheet(utils_workers._btn("#1a4a6b", "#1f5f8a"))
+        b_exp.setStyleSheet(ui_styles.STYLE_TB_EXPORT)
 
         b_sort = QPushButton("⇅ Sort ▾")
         b_sort.setToolTip("Sort images by name or date")
         b_sort.clicked.connect(self._show_sort_menu)
-        b_sort.setStyleSheet(utils_workers._btn("#3a2a5a", "#4e3a78"))
+        b_sort.setStyleSheet(ui_styles.STYLE_TB_SORT)
 
         for w in (b_add, b_rem):
             tb.addWidget(w)
@@ -166,7 +152,7 @@ class ToolbarMixin:
 
         # Apply styles to all movement/undo buttons
         for w in (b_undo, b_redo, b_start, b_bk, b_fw, b_end):
-            w.setStyleSheet(utils_workers._btn("#252535", "#32324a", True))
+            w.setStyleSheet(ui_styles.STYLE_TB_NAV)
 
         # Layout: Undo/Redo | Sep | Start | Left | Right | End
         for w in (b_undo, b_redo):
@@ -179,7 +165,7 @@ class ToolbarMixin:
         b_gear = QPushButton("⚙")
         b_gear.setToolTip("Settings")
         b_gear.clicked.connect(self._show_settings_menu)
-        b_gear.setStyleSheet(utils_workers._btn("#1e1e1e", "#2e2e2e", True))
+        b_gear.setStyleSheet(ui_styles.STYLE_TB_UTIL)
         tb.addWidget(b_gear)
 
         tb.addStretch()
@@ -194,17 +180,7 @@ class ToolbarMixin:
         self.progress_bar.setFixedWidth(150)
         self.progress_bar.setFixedHeight(16)
         self.progress_bar.setTextVisible(False)
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                background-color: #2a2a2a;
-                border: 1px solid #404040;
-                border-radius: 3px;
-            }
-            QProgressBar::chunk {
-                background-color: #2d6fab;
-                border-radius: 2px;
-            }
-        """)
+        self.progress_bar.setStyleSheet(ui_styles.STYLE_PROGRESS_BAR)
         self.progress_bar.setVisible(False)
         self.status_container.addWidget(self.progress_bar)
 
@@ -212,28 +188,24 @@ class ToolbarMixin:
         self.cancel_btn = QPushButton("✕ Cancel")
         self.cancel_btn.setFixedHeight(20)
         self.cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.cancel_btn.setStyleSheet(
-            "QPushButton{background:#5a1a1a;color:#e0e0e0;border:none;"
-            "padding:0 8px;border-radius:3px;font-size:11px;font-weight:500;}"
-            "QPushButton:hover{background:#8a2020;}"
-        )
+        self.cancel_btn.setStyleSheet(ui_styles.STYLE_CANCEL_BTN_SMALL)
         self.cancel_btn.setVisible(False)
         self.cancel_btn.clicked.connect(self._cancel_operation)
         self.status_container.addWidget(self.cancel_btn)
 
         # Status Label (for messages like "Exporting...")
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet("color: #4d8fcc; font-size: 12px; font-weight: bold; min-width: 150px;")
+        self.status_label.setStyleSheet(ui_styles.STYLE_STATUS_LABEL)
         self.status_container.addWidget(self.status_label)
 
         # Count Label (for "X images · Y selected")
         self.count_label = QLabel("0 images")
-        self.count_label.setStyleSheet("font-size:11px;color:#bbb;min-width:95px;")
+        self.count_label.setStyleSheet(ui_styles.STYLE_COUNT_LABEL)
         self.status_container.addWidget(self.count_label)
 
         # Zoom controls
         lbl_z = QLabel("Zoom")
-        lbl_z.setStyleSheet("font-size:11px;color:#bbb;")
+        lbl_z.setStyleSheet(ui_styles.STYLE_ZOOM_LABEL)
         self.zoom_box = QComboBox()
         self.zoom_box.setToolTip("Zoom\nCtrl+Scroll")
         for z in constants.ZOOM_STEPS:
@@ -248,7 +220,7 @@ class ToolbarMixin:
         b_about = QPushButton("ℹ")
         b_about.setToolTip("About Storyboard Imagesorter")
         b_about.clicked.connect(self._show_about)
-        b_about.setStyleSheet(utils_workers._btn("#1e1e1e", "#2e2e2e", True))
+        b_about.setStyleSheet(ui_styles.STYLE_TB_UTIL)
         tb.addWidget(b_about)
 
         return tb
@@ -292,7 +264,7 @@ class ToolbarMixin:
     def _show_settings_menu(self):
         """Gap slider, auto-reload toggle, label visibility toggles, and reset."""
         menu = QMenu(self)
-        menu.setStyleSheet(constants.MENU_STYLE)
+        menu.setStyleSheet(ui_styles.MENU_STYLE)
 
         # Absolute widths to guarantee perfect vertical alignment of all controls
         LABEL_WIDTH = 100
@@ -314,7 +286,7 @@ class ToolbarMixin:
         gap_row = QHBoxLayout()
         lbl_gap = QLabel("Gap")
         lbl_gap.setFixedWidth(LABEL_WIDTH)
-        lbl_gap.setStyleSheet("font-size:11px;color:#bbb;")
+        lbl_gap.setStyleSheet(ui_styles.STYLE_ZOOM_LABEL)
         slider = QSlider(Qt.Orientation.Horizontal)
         slider.setRange(0, 100)
         slider.setValue(self.current_spacing)
@@ -335,7 +307,7 @@ class ToolbarMixin:
         sz_row = QHBoxLayout()
         lbl_sz = QLabel("Scroll zone opacity")
         lbl_sz.setFixedWidth(LABEL_WIDTH)
-        lbl_sz.setStyleSheet("font-size:11px;color:#bbb;")
+        lbl_sz.setStyleSheet(ui_styles.STYLE_ZOOM_LABEL)
         slider_sz = QSlider(Qt.Orientation.Horizontal)
         slider_sz.setRange(0, 255)
         slider_sz.setValue(self.settings_manager.get("scroll_zone_alpha", 80))
@@ -356,7 +328,7 @@ class ToolbarMixin:
         undo_row = QHBoxLayout()
         lbl_undo = QLabel("Undo limit")
         lbl_undo.setFixedWidth(LABEL_WIDTH)
-        lbl_undo.setStyleSheet("font-size:11px;color:#bbb;")
+        lbl_undo.setStyleSheet(ui_styles.STYLE_ZOOM_LABEL)
         undo_spin = QSpinBox()
         undo_spin.setRange(5, 1000)
         undo_spin.setValue(self.settings_manager.get("undo_limit", 50))
@@ -382,15 +354,8 @@ class ToolbarMixin:
         visuals_vbox.setContentsMargins(12, 5, 12, 5)
         visuals_vbox.setSpacing(6)
 
-        # Styles for toggle buttons
-        ss_active = (
-            "QPushButton{background:#172d4e;color:#4d8fcc;"
-            "border:1px solid #2d6fab;padding:4px 10px;text-align:left;font-size:11px;}"
-        )
-        ss_inactive = (
-            "QPushButton{background:#2a2a2a;color:#aaa;"
-            "border:1px solid #383838;padding:4px 10px;text-align:left;font-size:11px;}"
-        )
+        ss_active = ui_styles.STYLE_TOGGLE_ACTIVE
+        ss_inactive = ui_styles.STYLE_TOGGLE_INACTIVE
 
         # Group A: Automation (Auto-reload toggle)
         ar_cb = QPushButton()

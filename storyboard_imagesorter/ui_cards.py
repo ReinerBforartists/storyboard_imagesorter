@@ -29,6 +29,7 @@ from PyQt6 import sip  # Used to check if the C++ object still exists
 
 import constants
 from utils_workers import WorkerSignals, ImageLoadWorker
+import ui_styles
 
 MIME_INTERNAL = constants.MIME_INTERNAL
 
@@ -121,11 +122,7 @@ class ThumbnailCard(QFrame):
         self.reload_btn = QPushButton("↻", self.img_container)
         self.reload_btn.setFixedSize(22, 22)
         self.reload_btn.move(self._size - 26, 4)
-        self.reload_btn.setStyleSheet(
-            "QPushButton{background:#e8872a;color:#fff;border:none;border-radius:11px;"
-            "font-size:13px;font-weight:bold;padding:0;}"
-            "QPushButton:hover{background:#ff9f35;}"
-        )
+        self.reload_btn.setStyleSheet(ui_styles.STYLE_RELOAD_BTN)
         self.reload_btn.setVisible(False)
         self.reload_btn.clicked.connect(self._do_reload)
 
@@ -133,13 +130,7 @@ class ThumbnailCard(QFrame):
         self.note_editor.setPlaceholderText("Type note here...")
         # Ensure scrollbars are always visible to provide visual feedback
         self.note_editor.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
-        self.note_editor.setStyleSheet(
-            "QTextEdit { background:#2a2a2a; color:#eee; border:1px solid #404040; "
-            "border-radius:3px; font-size:12px; padding:4px; }"
-            "QScrollBar:vertical { background: #2a2a2a; width: 8px; margin: 0px; }"
-            "QScrollBar::handle:vertical { background: #444; min-height: 20px; border-radius: 4px; }"
-            "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }"
-        )
+        self.note_editor.setStyleSheet(ui_styles.STYLE_NOTE_EDITOR)
         self.note_editor.textChanged.connect(self._on_text_changed)
 
         self.stack.addWidget(self.img_container)
@@ -149,7 +140,7 @@ class ThumbnailCard(QFrame):
         # --- Color Accent Bar (Always visible, part of layout) ---
         self.color_bar = QFrame()
         self.color_bar.setFixedHeight(6)
-        self.color_bar.setStyleSheet("background-color: #404040; border: none;")
+        self.color_bar.setStyleSheet(ui_styles.STYLE_COLOR_BAR_EMPTY)
         self.main_layout.addWidget(self.color_bar)
 
         # --- Text Labels Section (Solid Dark Grey) ---
@@ -174,11 +165,7 @@ class ThumbnailCard(QFrame):
         # --- Actions Section ---
         self.toggle_btn = QPushButton("📝 + Add Note")
         self.toggle_btn.setFixedHeight(40)  # Increased height for readability
-        self.toggle_btn.setStyleSheet(
-            "QPushButton{background:#333; color:#aaa; border:1px solid #444; "
-            "border-radius:3px; font-size:10px; padding:2px 6px; text-align:left;}"
-            "QPushButton:hover{background:#444; color:#fff;}"
-        )
+        self.toggle_btn.setStyleSheet(ui_styles.style_note_toggle_btn(10))
         self.toggle_btn.clicked.connect(self.toggle_mode)
         self.main_layout.addWidget(self.toggle_btn)
 
@@ -346,19 +333,13 @@ class ThumbnailCard(QFrame):
         self._idx_font_size = max(8, int(10 * scale))
         self._name_font_size = self._idx_font_size
 
-        # 'border: none;' removes visual noise around labels
-        base_label_style = "background-color: #2a2a2a; color: white; border: none;"
+        base_label_style = ui_styles.style_card_label(self._idx_font_size)
 
-        self.idx_label.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
-        self.char_counter.setStyleSheet(f"{base_label_style} font-size:{self._idx_font_size}px;")
-        self.name_label.setStyleSheet(f"{base_label_style} font-size:{self._name_font_size}px;")
+        self.idx_label.setStyleSheet(base_label_style)
+        self.char_counter.setStyleSheet(base_label_style)
+        self.name_label.setStyleSheet(ui_styles.style_card_label(self._name_font_size))
 
-        btn_fs = max(9, int(10 * scale))
-        self.toggle_btn.setStyleSheet(
-            f"QPushButton{{background:#333; color:#aaa; border:1px solid #444; "
-            f"border-radius:3px; font-size:{btn_fs}px; padding:2px 6px; text-align:left;}}"
-            f"QPushButton:hover{{background:#444; color:#fff;}}"
-        )
+        self.toggle_btn.setStyleSheet(ui_styles.style_note_toggle_btn(max(9, int(10 * scale))))
 
         self.main_layout.activate()
 
@@ -466,7 +447,7 @@ class ThumbnailCard(QFrame):
         self._changed = changed
         self.reload_btn.setVisible(changed)
         if changed:
-            s = "background:#252525;border:2px solid #e8872a;border-radius:5px;"
+            s = ui_styles.STYLE_CARD_CHANGED
             if s != self._current_style:
                 self._current_style = s
                 self.setStyleSheet(s)
@@ -482,11 +463,11 @@ class ThumbnailCard(QFrame):
     def _apply_style(self):
         """Applies the background and border style based on state."""
         if self._drag_over:
-            s = "background:#1e3d6e;border:2px solid #4d8fcc;border-radius:5px;"
+            s = ui_styles.STYLE_CARD_DRAGOVER
         elif self._selected:
-            s = "background:#172d4e;border:2px solid #2d6fab;border-radius:5px;"
+            s = ui_styles.STYLE_CARD_SELECTED
         else:
-            s = "background:#252525;border:2px solid #404040;border-radius:5px;"
+            s = ui_styles.STYLE_CARD_DEFAULT
         if s != self._current_style:
             self._current_style = s
             self.setStyleSheet(s)
@@ -502,7 +483,7 @@ class ThumbnailCard(QFrame):
         if color_hex:
             self.color_bar.setStyleSheet(f"background-color: {color_hex}; border: none;")
         else:
-            self.color_bar.setStyleSheet("background-color: #404040; border: none;")
+            self.color_bar.setStyleSheet(ui_styles.STYLE_COLOR_BAR_EMPTY)
 
     def update_index(self, index):
         """Updates the displayed index label."""

@@ -47,17 +47,9 @@ def zoom_to_px(pct):
 
 
 def _btn(bg, hover, icon=False):
-    """Generates a standardized stylesheet for toolbar buttons."""
-    w = f"min-width:{constants.TOOLBAR_H}px;" if icon else "min-width:78px;"
-    pad = "0px 6px" if icon else "0px 11px"
-    fs = "16px" if icon else "12px"
-
-    return (
-        f"QPushButton{{background:{bg};color:#e0e0e0;border:none;"
-        f"padding:{pad};border-radius:5px;min-height:{constants.TOOLBAR_H}px;{w}font-size:{fs};font-weight:500;}}"
-        f"QPushButton:hover{{background:{hover};}}"
-        f"QPushButton:disabled{{background:#222;color:#3a3a3a;}}"
-    )
+    """Backwards-compatible alias — delegates to ui_styles.style_toolbar_btn."""
+    import ui_styles
+    return ui_styles.style_toolbar_btn(bg, hover, icon)
 
 
 class WorkerSignals(QObject):

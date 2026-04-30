@@ -11,6 +11,7 @@ from PyQt6.QtCore import Qt, QMimeData, QPoint, QRect, QSize, pyqtSignal
 import constants
 from utils_workers import WorkerSignals, ImageLoadWorker
 from commands import MoveToStashCommand, MoveFromStashCommand, ClearStashCommand, RemoveFromStashCommand
+import ui_styles
 
 MIME_INTERNAL = constants.MIME_INTERNAL
 MIME_STASH = "application/x-stash-paths"
@@ -70,7 +71,7 @@ class StashContainer(QWidget):
         self.setAcceptDrops(True)
         # Allow the container to receive keyboard focus
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setStyleSheet("background:#141414;")
+        self.setStyleSheet(ui_styles.STYLE_STASH_CONTAINER)
         self.setMinimumHeight(10)
 
     def _select_all_stash(self):
@@ -202,17 +203,10 @@ class StashCard(QFrame):
 
     def _apply_style(self):
         """Applies selection and base card styles."""
-        bg = "#252525"
-        border = "#404040"
-
         if self._selected:
-            bg = "#172d4e"
-            border = "#2d6fab"
-        elif self._color:
-            bg = "#252525"
-            border = "#404040"
-
-        self.setStyleSheet(f"background:{bg}; border:2px solid {border}; border-radius:5px;")
+            self.setStyleSheet(ui_styles.STYLE_CARD_SELECTED)
+        else:
+            self.setStyleSheet(ui_styles.STYLE_CARD_DEFAULT)
 
     def set_selected(self, sel):
         """Sets the selection state of the card."""
@@ -353,7 +347,7 @@ class StashZone(QWidget):
         self._setup_ui()
 
     def _setup_ui(self):
-        self.setStyleSheet("background:#141414;")
+        self.setStyleSheet(ui_styles.STYLE_STASH_CONTAINER)
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(0)
@@ -361,46 +355,30 @@ class StashZone(QWidget):
         # Use the custom StashHeader which handles click activation
         self.header = StashHeader(self)
         self.header.setFixedHeight(self.HEADER_H)
-        self.header.setStyleSheet("QFrame{background:#1a1a1a;border-top:1px solid #333;}")
+        self.header.setStyleSheet(ui_styles.STYLE_STASH_HEADER_INACTIVE)
         h_lay = QHBoxLayout(self.header)
         h_lay.setContentsMargins(8, 0, 8, 0)
         h_lay.setSpacing(6)
 
         self.clear_btn = QPushButton("✕ Clear Stash")
-        self.clear_btn.setStyleSheet(
-            "QPushButton{background:transparent;color:#bbb;border:none;"
-            "font-size:10px;padding:0 4px;}"
-            "QPushButton:hover{color:#c0392b;}"
-        )
+        self.clear_btn.setStyleSheet(ui_styles.style_stash_action_btn(ui_styles.TEXT_DANGER))
         self.clear_btn.clicked.connect(self._on_clear)
         h_lay.addWidget(self.clear_btn)
 
         self.return_btn = QPushButton("↑ Return selected")
-        self.return_btn.setStyleSheet(
-            "QPushButton{background:transparent;color:#bbb;border:none;"
-            "font-size:10px;padding:0 4px;}"
-            "QPushButton:hover{color:#4d8fcc;}"
-        )
+        self.return_btn.setStyleSheet(ui_styles.style_stash_action_btn(ui_styles.TEXT_ACCENT))
         self.return_btn.clicked.connect(self._return_selected)
         h_lay.addWidget(self.return_btn)
 
         self.remove_btn = QPushButton("✕ Remove")
-        self.remove_btn.setStyleSheet(
-            "QPushButton{background:transparent;color:#bbb;border:none;"
-            "font-size:10px;padding:0 4px;}"
-            "QPushButton:hover{color:#c0392b;}"
-        )
+        self.remove_btn.setStyleSheet(ui_styles.style_stash_action_btn(ui_styles.TEXT_DANGER))
         self.remove_btn.clicked.connect(self._remove_selected)
         h_lay.addWidget(self.remove_btn)
 
         h_lay.addStretch()
 
         self.toggle_btn = QPushButton("▲  Stash  (0)")
-        self.toggle_btn.setStyleSheet(
-            "QPushButton{background:transparent;color:#bbb;border:none;"
-            "font-size:11px;text-align:right;padding:0;}"
-            "QPushButton:hover{color:#eee;}"
-        )
+        self.toggle_btn.setStyleSheet(ui_styles.style_stash_action_btn(ui_styles.TEXT_PRIMARY))
         self.toggle_btn.setToolTip("Toggle stash\nTab")
         self.toggle_btn.clicked.connect(self.toggle)
         h_lay.addWidget(self.toggle_btn)
@@ -411,12 +389,7 @@ class StashZone(QWidget):
         self.scroll.setWidgetResizable(True)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll.setStyleSheet(
-            "QScrollArea{border:none;background:#141414;}"
-            "QScrollBar:horizontal{background:#141414;height:6px;}"
-            "QScrollBar::handle:horizontal{background:#333;border-radius:3px;}"
-            "QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal{width:0;}"
-        )
+        self.scroll.setStyleSheet(ui_styles.STYLE_STASH_SCROLL)
 
         self.container = StashContainer(self)
         flow = QHBoxLayout(self.container)
@@ -427,7 +400,7 @@ class StashZone(QWidget):
 
         self.empty_hint = QLabel("Drop images here  ·  double-click to return")
         self.empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.empty_hint.setStyleSheet("color:#999; font-size:11px;")
+        self.empty_hint.setStyleSheet(ui_styles.STYLE_STASH_EMPTY_HINT)
         self.flow.addWidget(self.empty_hint)
 
         self.scroll.setWidget(self.container)
@@ -443,11 +416,9 @@ class StashZone(QWidget):
     def set_active(self, active: bool):
         """Changes the header brightness to indicate focus state."""
         if active:
-            # Slightly brighter background for active state (Luminance shift)
-            self.header.setStyleSheet("QFrame{background:#252525;border-top:1px solid #333;}")
+            self.header.setStyleSheet(ui_styles.STYLE_STASH_HEADER_ACTIVE)
         else:
-            # Original dark background for inactive state
-            self.header.setStyleSheet("QFrame{background:#1a1a1a;border-top:1px solid #333;}")
+            self.header.setStyleSheet(ui_styles.STYLE_STASH_HEADER_INACTIVE)
 
     def _on_card_clicked(self, path):
         mods = QApplication.keyboardModifiers()

@@ -346,3 +346,23 @@ STYLE_TB_EXPORT = _TB("#1a4a6b", "#1f5f8a")   # blue   — export
 STYLE_TB_SORT   = _TB("#3a2a5a", "#4e3a78")   # purple — sort
 STYLE_TB_NAV    = _TB("#252535", "#32324a", True)   # neutral icon — nav/undo
 STYLE_TB_UTIL   = _TB("#1e1e1e", "#2e2e2e", True)   # dark icon   — gear/info
+
+
+STYLE_TB_NAV    = _TB("#252535", "#32324a", True)   # neutral icon — nav/undo
+STYLE_TB_UTIL   = _TB("#1e1e1e", "#2e2e2e", True)   # dark icon   — gear/info
+
+# ─── Sidebar-Specific Button Styles ─────────────────────────────────────────
+# Unified presets for the color sidebar to maintain visual consistency.
+
+STYLE_SIDEBAR_ICON = (
+    f"QPushButton{{background:{BG_INPUT};color:#e0e0e0;border:1px solid {BORDER_INPUT};"
+    f"border-radius:3px;padding:0px;font-size:11px;min-height:20px;}}"
+    f"QPushButton:hover{{background:{BG_HOVER};border-color:{BORDER_FOCUS};}}"
+)
+
+STYLE_SIDEBAR_CLEAR = (
+    f"QPushButton{{background:{BG_INPUT};color:{TEXT_DANGER};border:1px solid {BORDER_INPUT};"
+    f"border-radius:4px;padding:0px;font-size:18px;font-weight:bold;min-height:32px;}}"
+    f"QPushButton:hover{{background:#3a2a2a;border-color:{TEXT_DANGER};}}"
+)
+

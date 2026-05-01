@@ -117,7 +117,7 @@ class ExportPreviewDialog(QDialog):
 
         # ── Preview table ─────────────────────────────────────────────────────
         info = QLabel(f"{len(cards)} images will be exported with these names:")
-        info.setStyleSheet("color:#bbb;font-size:12px;margin-bottom:2px;")
+        info.setStyleSheet(ui_styles.STYLE_DIALOG_INFO_LABEL)
         lay.addWidget(info)
 
         self.table = QTableWidget(len(cards), 2)
@@ -134,7 +134,7 @@ class ExportPreviewDialog(QDialog):
 
         # ── Folder row ────────────────────────────────────────────────────────
         folder_lbl = QLabel("Export folder:")
-        folder_lbl.setStyleSheet("color:#bbb;font-size:12px;")
+        folder_lbl.setStyleSheet(ui_styles.STYLE_DIALOG_FOLDER_LBL)
         lay.addWidget(folder_lbl)
         folder_row, self._folder_edit, _ = _make_folder_row(self, initial_dir)
         lay.addLayout(folder_row)
@@ -321,10 +321,7 @@ class ContactSheetDialog(QDialog):
 
         # --- SECTION 1: Prefix Input ---
         self.prefix_edit = QLineEdit(initial_prefix)
-        self.prefix_edit.setStyleSheet(
-            "background:#252525;color:#d0d0d0;border:1px solid #404040;"
-            "border-radius:4px;padding:4px;min-height:26px;"
-        )
+        self.prefix_edit.setStyleSheet(ui_styles.STYLE_CONTACT_PREFIX_EDIT)
         lay.addLayout(make_row("Filename prefix:", self.prefix_edit))
 
         # Space between Prefix and Export Mode
@@ -426,7 +423,7 @@ class ContactSheetDialog(QDialog):
 
         # --- SECTION 6: Export Folder ---
         folder_lbl = QLabel("Export folder:")
-        folder_lbl.setStyleSheet("color:#bbb;font-size:12px;")
+        folder_lbl.setStyleSheet(ui_styles.STYLE_DIALOG_FOLDER_LBL)
         lay.addWidget(folder_lbl)
         folder_row, self._folder_edit, _ = _make_folder_row(self, initial_dir)
         lay.addLayout(folder_row)
@@ -610,7 +607,7 @@ class AboutDialog(QDialog):
         title = QLabel("Storyboard Imagesorter v0.9.2")
         title.setFont(QFont("Arial", 17, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("color:#4d8fcc;")
+        title.setStyleSheet(ui_styles.STYLE_ABOUT_TITLE)
         lay.addWidget(title)
 
         # Description section
@@ -626,14 +623,14 @@ class AboutDialog(QDialog):
         # Copyright section
         copyright_lbl = QLabel("Copyright © 2026 by Reiner Prokein (Haizy Tiles)")
         copyright_lbl.setFont(QFont("Arial", 9))
-        copyright_lbl.setStyleSheet("color: #999;")
+        copyright_lbl.setStyleSheet(ui_styles.STYLE_ABOUT_COPYRIGHT)
         copyright_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lay.addWidget(copyright_lbl)
 
         # Separator
         sep = QFrame()
         sep.setFrameShape(QFrame.Shape.HLine)
-        sep.setStyleSheet("color:#383838;")
+        sep.setStyleSheet(ui_styles.STYLE_SEPARATOR)
         lay.addWidget(sep)
 
         # ─── Hotkeys section ─────────────────────────────────────────────────────
@@ -693,7 +690,7 @@ class AboutDialog(QDialog):
         )
 
         grid_widget = QWidget()
-        grid_widget.setStyleSheet("background:#252525;border-radius:6px;")
+        grid_widget.setStyleSheet(ui_styles.STYLE_ABOUT_GRID_WIDGET)
         grid = QVBoxLayout(grid_widget)
         grid.setContentsMargins(12, 8, 12, 8)
         grid.setSpacing(3)
@@ -702,16 +699,16 @@ class AboutDialog(QDialog):
         for section_name, shortcuts in hotkeys_data.items():
             # Add Section Header
             header_lbl = QLabel(section_name)
-            header_lbl.setStyleSheet("color:#4d8fcc; font-weight:bold; font-size:12px; margin-top:10px; margin-bottom:2px;")
+            header_lbl.setStyleSheet(ui_styles.STYLE_ABOUT_SECTION_HDR)
             grid.addWidget(header_lbl)
 
             for key, desc_text in shortcuts:
                 row = QHBoxLayout()
                 row.setSpacing(8)
                 k_lbl = QLabel(key)
-                k_lbl.setStyleSheet("color:#e0e0e0;font-family:monospace;font-size:11px;min-width:160px;")
+                k_lbl.setStyleSheet(ui_styles.STYLE_ABOUT_KEY_LBL)
                 d_lbl = QLabel(desc_text)
-                d_lbl.setStyleSheet("color:#bbb;font-size:11px;")
+                d_lbl.setStyleSheet(ui_styles.STYLE_ABOUT_DESC_LBL)
                 row.addWidget(k_lbl)
                 row.addWidget(d_lbl, 1)
                 grid.addLayout(row)

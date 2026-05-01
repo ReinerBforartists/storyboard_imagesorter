@@ -28,8 +28,8 @@ from PyQt6.QtCore import Qt, QMimeData, QPoint, pyqtSignal, QEvent
 from PyQt6 import sip  # Used to check if the C++ object still exists
 
 import constants
-from utils_workers import WorkerSignals, ImageLoadWorker
 import ui_styles
+from utils_workers import WorkerSignals, ImageLoadWorker
 
 MIME_INTERNAL = constants.MIME_INTERNAL
 
@@ -149,11 +149,11 @@ class ThumbnailCard(QFrame):
         self.idx_row.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.idx_label = QLabel(str(self.index + 1))
-        self.idx_label.setStyleSheet("background:transparent; color:white;")
+        self.idx_label.setStyleSheet(ui_styles.STYLE_CARD_LABEL_TRANSPARENT)
         self.idx_row.addWidget(self.idx_label)
 
         self.char_counter = QLabel("")
-        self.char_counter.setStyleSheet("background:transparent; color:white;")
+        self.char_counter.setStyleSheet(ui_styles.STYLE_CARD_LABEL_TRANSPARENT)
         self.idx_row.addWidget(self.char_counter)
 
         self.main_layout.addLayout(self.idx_row)
@@ -229,9 +229,9 @@ class ThumbnailCard(QFrame):
         self.char_counter.setText(f"({current_len} / {self._BODY_LIMIT})")
 
         if current_len >= self._BODY_LIMIT - 20:
-            self.char_counter.setStyleSheet("background:transparent; color: #e74c3c; font-size: 9px;")
+            self.char_counter.setStyleSheet(ui_styles.STYLE_CHAR_COUNTER_WARN)
         else:
-            self.char_counter.setStyleSheet("background:transparent; color: white; font-size: 9px;")
+            self.char_counter.setStyleSheet(ui_styles.STYLE_CHAR_COUNTER_OK)
 
         # Emit signal for the sorter and update button preview
         self.note_changed.emit(self.path, processed_text.strip())
@@ -339,7 +339,8 @@ class ThumbnailCard(QFrame):
         self.char_counter.setStyleSheet(base_label_style)
         self.name_label.setStyleSheet(ui_styles.style_card_label(self._name_font_size))
 
-        self.toggle_btn.setStyleSheet(ui_styles.style_note_toggle_btn(max(9, int(10 * scale))))
+        btn_fs = max(9, int(10 * scale))
+        self.toggle_btn.setStyleSheet(ui_styles.style_note_toggle_btn(btn_fs))
 
         self.main_layout.activate()
 

@@ -347,10 +347,6 @@ STYLE_TB_SORT   = _TB("#3a2a5a", "#4e3a78")   # purple — sort
 STYLE_TB_NAV    = _TB("#252535", "#32324a", True)   # neutral icon — nav/undo
 STYLE_TB_UTIL   = _TB("#1e1e1e", "#2e2e2e", True)   # dark icon   — gear/info
 
-
-STYLE_TB_NAV    = _TB("#252535", "#32324a", True)   # neutral icon — nav/undo
-STYLE_TB_UTIL   = _TB("#1e1e1e", "#2e2e2e", True)   # dark icon   — gear/info
-
 # ─── Sidebar-Specific Button Styles ─────────────────────────────────────────
 # Unified presets for the color sidebar to maintain visual consistency.
 
@@ -366,3 +362,76 @@ STYLE_SIDEBAR_CLEAR = (
     f"QPushButton:hover{{background:#3a2a2a;border-color:{TEXT_DANGER};}}"
 )
 
+# ─── Card Styles ─────────────────────────────────────────────────────────────
+
+STYLE_CARD_DEFAULT  = f"background:{BG_SURFACE};border:2px solid {BORDER_INPUT};border-radius:5px;"
+STYLE_CARD_SELECTED = f"background:{BG_ACTIVE};border:2px solid {ACCENT_PRIMARY};border-radius:5px;"
+STYLE_CARD_DRAGOVER = f"background:#1e3d6e;border:2px solid {TEXT_ACCENT};border-radius:5px;"
+STYLE_CARD_CHANGED  = f"background:{BG_SURFACE};border:2px solid {ACCENT_WARNING};border-radius:5px;"
+
+STYLE_COLOR_BAR_EMPTY = f"background-color:{BORDER_INPUT};border:none;"
+
+STYLE_NOTE_EDITOR = (
+    f"QTextEdit{{background:{BG_INPUT};color:#eee;border:1px solid {BORDER_INPUT};"
+    f"border-radius:{BORDER_RADIUS}px;font-size:{FONT_SIZE_NORMAL}px;padding:4px;}}"
+    f"QScrollBar:vertical{{background:{BG_INPUT};width:8px;margin:0px;}}"
+    f"QScrollBar::handle:vertical{{background:#444;min-height:20px;border-radius:4px;}}"
+    f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}"
+)
+
+STYLE_RELOAD_BTN = (
+    f"QPushButton{{background:{ACCENT_WARNING};color:#fff;border:none;border-radius:11px;"
+    f"font-size:13px;font-weight:bold;padding:0;}}"
+    f"QPushButton:hover{{background:#ff9f35;}}"
+)
+
+def style_note_toggle_btn(font_size: int) -> str:
+    return (
+        f"QPushButton{{background:{BG_HOVER};color:{TEXT_SECONDARY};border:1px solid {BORDER_INPUT};"
+        f"border-radius:{BORDER_RADIUS}px;font-size:{font_size}px;padding:2px 6px;text-align:left;}}"
+        f"QPushButton:hover{{background:#444;color:#fff;}}"
+    )
+
+def style_card_label(font_size: int) -> str:
+    return f"background-color:{BG_INPUT};color:white;border:none;font-size:{font_size}px;"
+
+STYLE_CARD_LABEL_TRANSPARENT = f"background:transparent;color:white;"
+
+# char_counter warning states
+STYLE_CHAR_COUNTER_OK   = f"background:transparent;color:white;font-size:9px;"
+STYLE_CHAR_COUNTER_WARN = f"background:transparent;color:{TEXT_DANGER};font-size:9px;"
+
+# ─── Stash Styles ─────────────────────────────────────────────────────────────
+
+STYLE_STASH_CONTAINER     = f"background:{BG_DARK};"
+STYLE_STASH_HEADER_INACTIVE = f"QFrame{{background:#1a1a1a;border-top:1px solid {BORDER_DEFAULT};}}"
+STYLE_STASH_HEADER_ACTIVE   = f"QFrame{{background:{BG_SURFACE};border-top:1px solid {BORDER_DEFAULT};}}"
+STYLE_STASH_EMPTY_HINT    = f"color:{TEXT_SECONDARY};font-size:{FONT_SIZE_SMALL}px;"
+STYLE_STASH_SCROLL = (
+    f"QScrollArea{{border:none;background:#141414;}}"
+    f"QScrollBar:horizontal{{background:#141414;height:6px;}}"
+    f"QScrollBar::handle:horizontal{{background:{BG_HOVER};border-radius:3px;}}"
+    f"QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal{{width:0;}}"
+)
+
+def style_stash_action_btn(hover_color: str = TEXT_ACCENT) -> str:
+    return (
+        f"QPushButton{{background:transparent;color:{TEXT_SECONDARY};border:none;"
+        f"font-size:{FONT_SIZE_SMALL}px;padding:0 4px;}}"
+        f"QPushButton:hover{{color:{hover_color};}}"
+    )
+
+# ─── Dialog / About Styles ───────────────────────────────────────────────────
+
+STYLE_DIALOG_INFO_LABEL  = f"color:{TEXT_SECONDARY};font-size:{FONT_SIZE_NORMAL}px;margin-bottom:2px;"
+STYLE_DIALOG_FOLDER_LBL  = f"color:{TEXT_SECONDARY};font-size:{FONT_SIZE_NORMAL}px;"
+STYLE_ABOUT_TITLE        = f"color:{TEXT_ACCENT};"
+STYLE_ABOUT_COPYRIGHT    = f"color:{TEXT_SECONDARY};"
+STYLE_ABOUT_SECTION_HDR  = f"color:{TEXT_ACCENT};font-weight:bold;font-size:{FONT_SIZE_NORMAL}px;margin-top:10px;margin-bottom:2px;"
+STYLE_ABOUT_KEY_LBL      = f"color:#e0e0e0;font-family:monospace;font-size:{FONT_SIZE_SMALL}px;min-width:160px;"
+STYLE_ABOUT_DESC_LBL     = f"color:{TEXT_SECONDARY};font-size:{FONT_SIZE_SMALL}px;"
+STYLE_ABOUT_GRID_WIDGET  = f"background:{BG_SURFACE};border-radius:6px;"
+STYLE_CONTACT_PREFIX_EDIT = (
+    f"background:{BG_SURFACE};color:{TEXT_PRIMARY};border:1px solid {BORDER_INPUT};"
+    f"border-radius:{BORDER_RADIUS}px;padding:4px;min-height:26px;"
+)

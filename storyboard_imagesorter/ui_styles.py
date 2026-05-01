@@ -261,7 +261,7 @@ STYLE_RELOAD_BTN = (
 
 def style_note_toggle_btn(font_size: int) -> str:
     return (
-        f"QPushButton{{background:{BG_HOVER};color:#aaa;border:1px solid {BORDER_INPUT};"
+        f"QPushButton{{background:{BG_HOVER};color:{TEXT_SECONDARY};border:1px solid {BORDER_INPUT};"
         f"border-radius:{BORDER_RADIUS}px;font-size:{font_size}px;padding:2px 6px;text-align:left;}}"
         f"QPushButton:hover{{background:#444;color:#fff;}}"
     )
@@ -269,18 +269,24 @@ def style_note_toggle_btn(font_size: int) -> str:
 def style_card_label(font_size: int) -> str:
     return f"background-color:{BG_INPUT};color:white;border:none;font-size:{font_size}px;"
 
+STYLE_CARD_LABEL_TRANSPARENT = f"background:transparent;color:white;"
+
+# Character counter warning states
+STYLE_CHAR_COUNTER_OK   = f"background:transparent;color:white;font-size:9px;"
+STYLE_CHAR_COUNTER_WARN = f"background:transparent;color:{TEXT_DANGER};font-size:9px;"
+
 # ─── Stash Styles ─────────────────────────────────────────────────────────────
 
+STYLE_STASH_CONTAINER     = f"background:{BG_DARK};"
 STYLE_STASH_HEADER_INACTIVE = f"QFrame{{background:#1a1a1a;border-top:1px solid {BORDER_DEFAULT};}}"
 STYLE_STASH_HEADER_ACTIVE   = f"QFrame{{background:{BG_SURFACE};border-top:1px solid {BORDER_DEFAULT};}}"
-STYLE_STASH_CONTAINER       = f"background:{BG_DARK};"  # slightly different from main bg
+STYLE_STASH_EMPTY_HINT    = f"color:{TEXT_SECONDARY};font-size:{FONT_SIZE_SMALL}px;"
 STYLE_STASH_SCROLL = (
     f"QScrollArea{{border:none;background:#141414;}}"
     f"QScrollBar:horizontal{{background:#141414;height:6px;}}"
     f"QScrollBar::handle:horizontal{{background:{BG_HOVER};border-radius:3px;}}"
     f"QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal{{width:0;}}"
 )
-STYLE_STASH_EMPTY_HINT = f"color:{TEXT_SECONDARY};font-size:{FONT_SIZE_SMALL}px;"
 
 def style_stash_action_btn(hover_color: str = TEXT_ACCENT) -> str:
     return (
@@ -336,7 +342,7 @@ STYLE_LB_STASH = (
 # ─── Toolbar Action Button Presets ───────────────────────────────────────────
 # Named by semantic role so callers never hardcode hex colours.
 
-def _TB(bg, hover, icon=False):
+def _TB(bg: str, hover: str, icon: bool = False) -> str:
     """Internal shorthand used only in this module for toolbar presets."""
     return style_toolbar_btn(bg, hover, icon)
 
@@ -361,65 +367,6 @@ STYLE_SIDEBAR_CLEAR = (
     f"border-radius:4px;padding:0px;font-size:18px;font-weight:bold;min-height:32px;}}"
     f"QPushButton:hover{{background:#3a2a2a;border-color:{TEXT_DANGER};}}"
 )
-
-# ─── Card Styles ─────────────────────────────────────────────────────────────
-
-STYLE_CARD_DEFAULT  = f"background:{BG_SURFACE};border:2px solid {BORDER_INPUT};border-radius:5px;"
-STYLE_CARD_SELECTED = f"background:{BG_ACTIVE};border:2px solid {ACCENT_PRIMARY};border-radius:5px;"
-STYLE_CARD_DRAGOVER = f"background:#1e3d6e;border:2px solid {TEXT_ACCENT};border-radius:5px;"
-STYLE_CARD_CHANGED  = f"background:{BG_SURFACE};border:2px solid {ACCENT_WARNING};border-radius:5px;"
-
-STYLE_COLOR_BAR_EMPTY = f"background-color:{BORDER_INPUT};border:none;"
-
-STYLE_NOTE_EDITOR = (
-    f"QTextEdit{{background:{BG_INPUT};color:#eee;border:1px solid {BORDER_INPUT};"
-    f"border-radius:{BORDER_RADIUS}px;font-size:{FONT_SIZE_NORMAL}px;padding:4px;}}"
-    f"QScrollBar:vertical{{background:{BG_INPUT};width:8px;margin:0px;}}"
-    f"QScrollBar::handle:vertical{{background:#444;min-height:20px;border-radius:4px;}}"
-    f"QScrollBar::add-line:vertical,QScrollBar::sub-line:vertical{{height:0px;}}"
-)
-
-STYLE_RELOAD_BTN = (
-    f"QPushButton{{background:{ACCENT_WARNING};color:#fff;border:none;border-radius:11px;"
-    f"font-size:13px;font-weight:bold;padding:0;}}"
-    f"QPushButton:hover{{background:#ff9f35;}}"
-)
-
-def style_note_toggle_btn(font_size: int) -> str:
-    return (
-        f"QPushButton{{background:{BG_HOVER};color:{TEXT_SECONDARY};border:1px solid {BORDER_INPUT};"
-        f"border-radius:{BORDER_RADIUS}px;font-size:{font_size}px;padding:2px 6px;text-align:left;}}"
-        f"QPushButton:hover{{background:#444;color:#fff;}}"
-    )
-
-def style_card_label(font_size: int) -> str:
-    return f"background-color:{BG_INPUT};color:white;border:none;font-size:{font_size}px;"
-
-STYLE_CARD_LABEL_TRANSPARENT = f"background:transparent;color:white;"
-
-# char_counter warning states
-STYLE_CHAR_COUNTER_OK   = f"background:transparent;color:white;font-size:9px;"
-STYLE_CHAR_COUNTER_WARN = f"background:transparent;color:{TEXT_DANGER};font-size:9px;"
-
-# ─── Stash Styles ─────────────────────────────────────────────────────────────
-
-STYLE_STASH_CONTAINER     = f"background:{BG_DARK};"
-STYLE_STASH_HEADER_INACTIVE = f"QFrame{{background:#1a1a1a;border-top:1px solid {BORDER_DEFAULT};}}"
-STYLE_STASH_HEADER_ACTIVE   = f"QFrame{{background:{BG_SURFACE};border-top:1px solid {BORDER_DEFAULT};}}"
-STYLE_STASH_EMPTY_HINT    = f"color:{TEXT_SECONDARY};font-size:{FONT_SIZE_SMALL}px;"
-STYLE_STASH_SCROLL = (
-    f"QScrollArea{{border:none;background:#141414;}}"
-    f"QScrollBar:horizontal{{background:#141414;height:6px;}}"
-    f"QScrollBar::handle:horizontal{{background:{BG_HOVER};border-radius:3px;}}"
-    f"QScrollBar::add-line:horizontal,QScrollBar::sub-line:horizontal{{width:0;}}"
-)
-
-def style_stash_action_btn(hover_color: str = TEXT_ACCENT) -> str:
-    return (
-        f"QPushButton{{background:transparent;color:{TEXT_SECONDARY};border:none;"
-        f"font-size:{FONT_SIZE_SMALL}px;padding:0 4px;}}"
-        f"QPushButton:hover{{color:{hover_color};}}"
-    )
 
 # ─── Dialog / About Styles ───────────────────────────────────────────────────
 

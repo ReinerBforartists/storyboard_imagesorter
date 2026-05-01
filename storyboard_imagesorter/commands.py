@@ -107,6 +107,8 @@ class RemoveSelectedCommand(QUndoCommand):
             idx = item['index']
             self.sorter.cards.insert(idx, card)
             card.show()
+            if hasattr(self.sorter, '_watcher') and card.path not in self.sorter._watcher.files():
+                self.sorter._watcher.addPath(card.path)
 
         # 2. Update UI
         self.sorter._rebuild_flow_completely()
@@ -274,5 +276,3 @@ class RemoveFromStashCommand(QUndoCommand):
 
     def undo(self):
         self.stash_zone.add_paths(self.paths)
-
-

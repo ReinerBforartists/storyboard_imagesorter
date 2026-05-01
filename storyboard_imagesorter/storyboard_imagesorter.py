@@ -103,8 +103,7 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         self._status_timer = QTimer(singleShot=True)
         self._status_timer.timeout.connect(self.status_label.clear)
 
-        # FIX: Install event filter on the window to catch clicks even in empty areas
-        self.installEventFilter(self)
+        # Install event filter on the app level to catch clicks even in empty areas
         QApplication.instance().installEventFilter(self)
 
         saved_zoom = self.settings_manager.get("zoom_pct")

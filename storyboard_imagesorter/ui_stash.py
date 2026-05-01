@@ -1,4 +1,4 @@
-from PyQt6 import sip  # WICHTIG: Für die Sicherheitsprüfung
+from PyQt6 import sip  # Important for security reasons
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QScrollArea,
     QLabel, QPushButton, QFrame, QRubberBand, QApplication,

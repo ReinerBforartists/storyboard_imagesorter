@@ -29,4 +29,5 @@ IMAGE_EXTS = ('.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp')
 # Style constants are now owned by ui_styles.
 # Re-exported here so existing callers (constants.MENU_STYLE / constants.APP_STYLE)
 # continue to work without modification.
+# keep these imports even when VS Code greys them out, they are needed.
 from ui_styles import MENU_STYLE, STYLE_APP as APP_STYLE  # noqa: E402

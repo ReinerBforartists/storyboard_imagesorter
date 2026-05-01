@@ -19,9 +19,9 @@
 # Builds the main window layout, toolbar, canvas, and settings menu.
 
 from PyQt6.QtWidgets import (
-    QVBoxLayout, QHBoxLayout, QPushButton, QFrame, QLabel,
+    QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QComboBox, QSlider, QSpinBox, QMenu, QWidgetAction,
-    QWidget, QMessageBox, QApplication, QProgressBar,
+    QWidget, QMessageBox, QProgressBar,
 )
 from PyQt6.QtGui import QShortcut, QKeySequence
 from PyQt6.QtCore import Qt, QPoint, QFileSystemWatcher
@@ -30,7 +30,6 @@ import constants
 import utils_workers
 import ui_sidebar
 import ui_components
-import settings_manager
 import ui_styles
 
 

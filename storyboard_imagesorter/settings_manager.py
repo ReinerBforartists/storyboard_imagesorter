@@ -45,12 +45,13 @@ class SettingsManager(QObject):
             "contact_labels": True,
             "contact_notes": True,
             "contact_mode": "grid",
-            "contact_images_per_page": 24,
+            "contact_grid_per_page": 24,
+            "contact_list_per_page": 10,
+            "contact_show_index": True,
             "auto_reload": True,
             "show_index": True,
             "show_filename": True,
             "show_notes": False,
-            "include_summary": False,
             "custom_color": "#ffffff",
             "sidebar_visible": False,
             "stash_visible": False,
@@ -90,12 +91,32 @@ class SettingsManager(QObject):
             return os.path.expanduser(f"~/.config/{self.app_name}")
 
     def load(self):
-        """Loads settings from the JSON file and merges them with defaults."""
+        """Loads settings from the JSON file and merges them with defaults.
+        Handles legacy key migration and filters out unknown/stale keys.
+        """
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     saved = json.load(f)
-                self.settings = {**self._defaults, **saved}
+
+                # 1. Legacy key migration (maps old keys to new canonical names)
+                legacy_mapping = {
+                    "contact_images_per_page": "contact_grid_per_page",
+                    "include_summary": None,  # Explicitly drop this legacy key
+                }
+                for old_key, new_key in legacy_mapping.items():
+                    if old_key in saved:
+                        if new_key is None:
+                            del saved[old_key]
+                        else:
+                            saved[new_key] = saved.pop(old_key)
+
+                # 2. Merge defaults with saved data (defaults first, so saved overwrites)
+                merged = {**self._defaults, **saved}
+
+                # 3. Filter to only known keys to prevent stale config pollution
+                self.settings = {k: v for k, v in merged.items() if k in self._defaults}
+
             except Exception as e:
                 print(f"Error loading settings: {e}")
                 self.settings = self._defaults.copy()
@@ -103,12 +124,18 @@ class SettingsManager(QObject):
             self.settings = self._defaults.copy()
 
     def save(self):
-        """Saves the current settings dictionary to the JSON file immediately."""
+        """Saves the current settings dictionary to the JSON file immediately.
+        Only writes keys that exist in _defaults to prevent stale/legacy config accumulation.
+        """
+        # Filter to known keys only
+        config_data = {k: v for k, v in self.settings.items() if k in self._defaults}
+
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
-                json.dump(self.settings, f, indent=2)
+                json.dump(config_data, f, indent=2)
         except Exception as e:
             print(f"Error saving config: {e}")
+
 
     def request_save(self):
         """Schedules a save operation after the debounce interval."""

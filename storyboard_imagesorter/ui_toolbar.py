@@ -457,48 +457,73 @@ class ToolbarMixin:
         if btn:
             menu.exec(btn.mapToGlobal(QPoint(0, btn.height())))
 
-
     def _reset_settings(self):
-        """Resets all settings to defaults after confirmation."""
-        reply = QMessageBox.question(
-            self, "Reset settings",
-            "Reset all settings (gap, zoom, export prefix, contact sheet) to defaults?",
+        """Resets all application settings to defaults after explicit user confirmation."""
+        reply = QMessageBox.warning(
+            self,
+            "Reset settings",
+            "Reset all settings to defaults?\n\n"
+            "Note: This will also clear the undo/redo history.\n"
+            "Are you sure you want to continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No
         )
         if reply != QMessageBox.StandardButton.Yes:
             return
 
-        # 1. Re-initialize manager (loads defaults)
-        self.settings_manager = settings_manager.SettingsManager()
+        # Get the absolute source of truth: The defaults defined in SettingsManager
+        defaults = self.settings_manager._defaults.copy()
+        self.settings_manager.settings = defaults
 
-        # 2. Sync local UI variables with new defaults
-        self.current_spacing = self.settings_manager.get("gap")
-        self.saved_export_prefix = self.settings_manager.get("export_prefix")
-        self.saved_contact_cols = self.settings_manager.get("contact_cols")
-        self.saved_contact_thumb = self.settings_manager.get("contact_thumb")
-        self.saved_contact_labels = self.settings_manager.get("contact_labels")
-        self.saved_contact_notes = self.settings_manager.get("contact_notes", False)
+        # Sync local UI variables with the retrieved defaults
+        self.current_spacing = defaults["gap"]
+        self.saved_export_prefix = defaults["export_prefix"]
+        self.saved_contact_prefix = defaults["contact_export_prefix"]
+        self.saved_contact_cols = defaults["contact_cols"]
+        self.saved_contact_thumb = defaults["contact_thumb"]
+        self.saved_contact_labels = defaults["contact_labels"]
+        self.saved_contact_notes = defaults["contact_notes"]
+        self.saved_contact_index = defaults["contact_show_index"]
+        self.saved_contact_grid_per_page = defaults["contact_grid_per_page"]
+        self.saved_contact_list_per_page = defaults["contact_list_per_page"]
+        self.custom_color = defaults["custom_color"]
+        self.last_export_dir = defaults["last_export_dir"]
 
-        # 3. Update UI components
+        # Reset directly accessible UI components
         self.flow_layout.setSpacing(self.current_spacing)
-        self._apply_label_settings()
+        self.undo_stack.clear()
+        self.undo_stack.setUndoLimit(defaults["undo_limit"])
 
+        # Reset zoom control
         self.zoom_box.blockSignals(True)
-        self.zoom_box.setCurrentIndex(constants.ZOOM_STEPS.index(100))
+        if defaults["zoom_pct"] in constants.ZOOM_STEPS:
+            self.zoom_box.setCurrentIndex(constants.ZOOM_STEPS.index(defaults["zoom_pct"]))
+        else:
+            self.zoom_box.setCurrentIndex(0)
         self.zoom_box.blockSignals(False)
-        self.icon_size = utils_workers.zoom_to_px(100)
+        self.icon_size = utils_workers.zoom_to_px(defaults["zoom_pct"])
 
-        # Adjust undo limit
-        new_limit = self.settings_manager.get("undo_limit", 50)
-        self.undo_stack.setUndoLimit(new_limit)
+        # Clear user-specific data (notes and temporary colors)
+        self.custom_notes.clear()
+        self.temp_colors.clear()
 
+        # Reset sidebar and stash visibility based on defaults
+        if defaults["sidebar_visible"]:
+            self.sidebar.show()
+            self.sidebar_toggle.setText("‹")
+        else:
+            self.sidebar.hide()
+            self.sidebar_toggle.setText("›")
+
+        # FIX: StashZone has no collapse/expand, use toggle() and is_expanded()
+        if self.stash_zone.is_expanded() != defaults["stash_visible"]:
+            self.stash_zone.toggle()
+
+        # Rebuild UI state to reflect defaults
+        self._apply_label_settings()
         for card in self.cards:
             card.update_size(self.icon_size)
-
         self._rebuild_flow_completely()
 
-        # 4. IMPORTANT: Write the new state to disk immediately
+        # Persist changes immediately to disk
         self.settings_manager.save()
-
-

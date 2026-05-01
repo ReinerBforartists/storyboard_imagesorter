@@ -418,7 +418,7 @@ class LassoContainer(QWidget):
 
             if paths_from_stash:
                 # CASE 1: Returning from Stash to Main View.
-                dst_index = tgt.index if tgt else len(self.sorter.cards)
+                dst_index = self.sorter.cards.index(tgt) if tgt else len(self.sorter.cards)
                 self.sorter.undo_stack.push(MoveFromStashCommand(self.sorter, paths_from_stash, dst_index))
             elif tgt and tgt.path not in src_paths:
                 # CASE 2: Reordering within the Main View.

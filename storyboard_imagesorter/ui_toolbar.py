@@ -439,13 +439,20 @@ class ToolbarMixin:
             self.settings_manager.request_save()
 
         def _sync_undo(val):
-            """Syncs undo limit to both settings and the undo stack."""
-            undo_spin.blockSignals(True)
-            undo_spin.setValue(val)
-            undo_spin.blockSignals(False)
+            """Syncs undo limit to settings and reliably updates status feedback."""
             self.settings_manager.set("undo_limit", val)
             self.settings_manager.request_save()
-            self.undo_stack.setUndoLimit(val)
+
+            # Ensure status label is visible before updating.
+            if not self.status_label.isVisible():
+                self.status_label.show()
+
+            # setUndoLimit() strictly requires an empty stack.
+            if self.undo_stack.count() == 0:
+                self.undo_stack.setUndoLimit(val)
+                self.show_status("New Undo limit applied")
+            else:
+                self.show_status("Undo limit changed, requires restart")
 
         slider.valueChanged.connect(lambda v: _sync_gap(v, spin_gap, slider))
         spin_gap.valueChanged.connect(lambda v: _sync_gap(v, spin_gap, slider))

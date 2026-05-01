@@ -164,12 +164,15 @@ class MoveFromStashCommand(QUndoCommand):
             self.sorter.stash_zone._remove_path(p)
 
         existing = {c.path for c in self.sorter.cards}
+        current_index = self.insert_index
         for p in self.paths:
             if p not in existing:
                 # Add card without triggering layout rebuild every time
-                card = self.sorter._add_image_internal(p, self.insert_index, rebuild=False)
+                card = self.sorter._add_image_internal(p, current_index, rebuild=False)
                 self.added_cards.append(card)
                 existing.add(p)
+                if current_index is not None:
+                    current_index += 1
 
         # Single rebuild after all cards are restored
         self.sorter._rebuild_flow_completely()

@@ -379,7 +379,16 @@ class ImageSorter(ToolbarMixin, ExportManager, QWidget):
         QTimer.singleShot(400, lambda: self._handle_changed(path))
 
     def _handle_changed(self, path):
-        if os.path.exists(path) and path not in self._watcher.files():
+        if not os.path.exists(path):
+            # File was deleted — remove card via undo-able command
+            data = [{'path': c.path, 'index': i}
+                    for i, c in enumerate(self.cards) if c.path == path]
+            if data:
+                if hasattr(self, '_watcher'):
+                    self._watcher.removePath(path)
+                self.undo_stack.push(commands.RemoveSelectedCommand(self, data))
+            return
+        if path not in self._watcher.files():
             self._watcher.addPath(path)
         cards = [c for c in self.cards if c.path == path]
         if not cards:

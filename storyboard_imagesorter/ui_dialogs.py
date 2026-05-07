@@ -717,6 +717,19 @@ class AboutDialog(QDialog):
         scroll_area.setFixedHeight(280)
         lay.addWidget(scroll_area)
 
+        # GPL section
+        gpl_lbl = QLabel(
+            "This software is licensed under the GNU General Public License v3<br>"
+            f"<a href='https://github.com/ReinerBforartists/storyboard_imagesorter' "
+            f"style='color: {ui_styles.TEXT_ACCENT}; text-decoration: underline;'>Storyboard Imagesorter GitHub Repository</a>"
+        )
+        gpl_lbl.setFont(QFont("Arial", 10))
+        # Apply base text color only; font-family/size are handled by QFont
+        gpl_lbl.setStyleSheet(f"QLabel {{ color: {ui_styles.TEXT_SECONDARY}; }}")
+        gpl_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        gpl_lbl.setWordWrap(True)
+        gpl_lbl.setOpenExternalLinks(True)  # Enables browser launch on click
+        lay.addWidget(gpl_lbl)
 
         # Bottom button row
         btn_row = QHBoxLayout()
